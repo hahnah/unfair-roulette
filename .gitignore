@@ -1,0 +1,6 @@
+# Mac
+.DS_Store
+
+# Elm
+elm-stuff
+repl-temp-*

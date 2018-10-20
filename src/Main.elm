@@ -2,8 +2,10 @@ import Browser
 import Html exposing (Html, button, div, text)
 import Html.Events exposing (onClick)
 import List
+import Maybe
 import Svg exposing (svg, circle)
 import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, fillOpacity, stroke, strokeWidth, strokeDashoffset, strokeDasharray)
+import Debug
 
 main =
   Browser.sandbox
@@ -33,6 +35,12 @@ type alias Counter =
   { id: String
   , name: String
   , count: Int
+  }
+
+type alias FanShape =
+  { offset: Float
+  , percentage: Float
+  , color: String
   }
 
 
@@ -99,23 +107,35 @@ view model =
 
 viewRoulette : Counters -> Html Msg
 viewRoulette counters =
-  svg
-    [ viewBox "0 0 63.6619772368 63.6619772368" , width "300px" ]
-    [ viewFanShape 0 30 "#ff0000"
-    , viewFanShape 30 40 "#00ff00"
-    , viewFanShape 70 30 "#0000ff"
-    ]
-
-viewFanShape : Float -> Float -> String -> Html Msg
-viewFanShape offset percentage color =
   let
-    strokeDashoffset_ = String.fromFloat <| 25.0 - offset
-    strokeDasharray_ = String.fromFloat percentage ++ " " ++ (String.fromFloat <| 100.0 - percentage)
+    counts = List.map (\counter -> toFloat counter.count) counters
+    total = List.sum counts
+    percentages = List.map (\count -> 100.0 * count / total) counts
+    offsets = List.foldl (\percentage acc -> List.append acc [(Maybe.withDefault 0.0 <| List.maximum acc) + percentage]) [0.0] percentages
+    colors =
+      [ "#ff0000"
+      , "#ffff00"
+      , "#00ff00"
+      , "#00ffff"
+      , "#0000ff"
+      , "#ff00ff"
+      ]
+    fanShapes = List.map3 (\offset percentage color -> FanShape offset percentage color) offsets percentages colors
+  in
+    svg
+      [ viewBox "0 0 63.6619772368 63.6619772368" , width "300px" ]
+      (List.map (\fanShape -> viewFanShape fanShape) fanShapes)
+      
+viewFanShape : FanShape -> Html Msg
+viewFanShape fanShape =
+  let
+    strokeDashoffset_ = String.fromFloat <| 25.0 - fanShape.offset
+    strokeDasharray_ = String.fromFloat fanShape.percentage ++ " " ++ (String.fromFloat <| 100.0 - fanShape.percentage)
   in
     circle
       [ cx "31.8309886184", cy "31.8309886184", r "15.9154943092"
       , fill "#ffffff", fillOpacity "0.0"
-      , stroke color, strokeWidth "31.8309886184", strokeDashoffset strokeDashoffset_, strokeDasharray strokeDasharray_ ]
+      , stroke fanShape.color, strokeWidth "31.8309886184", strokeDashoffset strokeDashoffset_, strokeDasharray strokeDasharray_ ]
       []
 
 viewCounter : Counter -> Html Msg

@@ -18,7 +18,9 @@ main =
 -- MODEL
 
 type alias Model =
-  { counters: Counters }
+  { counters: Counters
+  , maxCounters: Int
+  }
 
 init : Int -> Model
 init num =
@@ -26,8 +28,9 @@ init num =
     counters = List.range 1 num
       |> List.map String.fromInt
       |> List.map (\id -> Counter id "" 0)
+    maxCounters = List.length colorList
   in
-    Model counters
+    Model counters maxCounters
 
 type alias Counters = List Counter
 
@@ -169,3 +172,10 @@ viewCounter counter color =
       , div [ style "display" "inline" ] [ text count ]
       , button [ style "display" "inline", onClick (Increment counter) ] [ text "+" ]
       ]
+
+typeOfIncrementButton : Counter -> Html.Attribute msg
+typeOfIncrementButton counter =
+  if counter.count < 10 then
+    style "type" "button"
+  else
+    style "type" "button-disabled" 

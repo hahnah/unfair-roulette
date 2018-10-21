@@ -27,7 +27,6 @@ init : Int -> Model
 init num =
   let
     counters = List.range 1 num
-      |> List.map String.fromInt
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
   in
@@ -36,7 +35,7 @@ init num =
 type alias Counters = List Counter
 
 type alias Counter =
-  { id: String
+  { id: Int 
   , label: String
   , count: Int
   }
@@ -110,7 +109,7 @@ update msg model =
 newCounter : Counters -> Counter
 newCounter counters =
   let
-    newID = String.fromInt <| List.length counters + 1
+    newID = List.length counters + 1
   in
     Counter newID "" 0 
 

@@ -1,3 +1,5 @@
+module Main exposing (main)
+
 import Browser
 import Html exposing (Html, button, div, text, input)
 import Html.Events exposing (onClick, onInput)
@@ -6,31 +8,36 @@ import List
 import Maybe
 import Svg exposing (svg, circle)
 import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, fillOpacity, stroke, strokeWidth, strokeDashoffset, strokeDasharray, transform)
+import Time
 
+main : Program () Model Msg
 main =
-  Browser.sandbox
-    { init = init 2
+  Browser.element
+    { init = \_ -> init 2
     , update = update
     , view = view
+    , subscriptions = subscriptions
     }
 
 
 -- MODEL
 
 type alias Model =
-  { counters: Counters
+  { scene: Scene
+  , counters: Counters
   , maxCounters: Int
   , rotationPercentage: Float
+  , rotationPercentageVelocity: Float
   }
 
-init : Int -> Model
+init : Int -> (Model, Cmd Msg)
 init num =
   let
     counters = List.range 1 num
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
   in
-    Model counters maxCounters 0.0
+    (Model EditingRoulette counters maxCounters 0.0 0.0, Cmd.none)
 
 type alias Counters = List Counter
 
@@ -50,6 +57,11 @@ type alias Color = String
 
 type alias Colors = List Color
 
+type Scene
+  = EditingRoulette
+  | RouletteSpinning
+  | RouletteStopped
+  | ResultShowed
 
 -- MSG
 
@@ -59,52 +71,77 @@ type Msg
   | AddItem
   | DeleteItem Counter
   | ChangeLable Counter String
-
+  | StartSpinningRoulette
+  | SpinRoulette Time.Posix
+  | StopRoulette Time.Posix
+  | ShowResult Time.Posix
+  | HideResult
 
 -- UPDATE
 
-update : Msg -> Model -> Model
+update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  case msg of
-    Increment counter ->
+  case (msg, model.scene) of
+    (Increment counter, EditingRoulette) ->
       let
         (front, back) = separateIntoFrontAndBack model.counters counter
         updatedCounter = { counter | count = counter.count + 1}
         updatedCounters = front ++ [updatedCounter] ++ back
       in
-        { model | counters = updatedCounters }
+        ({ model | counters = updatedCounters }, Cmd.none)
 
-    Decrement counter ->
+    (Decrement counter, EditingRoulette) ->
       if 0 < counter.count then
         let
           (front, back) = separateIntoFrontAndBack model.counters counter
           updatedCounter = { counter | count = counter.count - 1}
           updatedCounters = front ++ [updatedCounter] ++ back
         in
-          { model | counters = updatedCounters }
+          ({ model | counters = updatedCounters }, Cmd.none)
       else
-        model
+        (model, Cmd.none)
 
-    AddItem ->
+    (AddItem, EditingRoulette) ->
       if List.length model.counters < model.maxCounters then
-        { model | counters = List.append model.counters <| [newCounter model.counters] }
+        ({ model | counters = List.append model.counters <| [newCounter model.counters] }, Cmd.none)
       else
-        model
+        (model, Cmd.none)
     
-    DeleteItem counter ->
+    (DeleteItem counter, EditingRoulette) ->
       let
         (front, back) = separateIntoFrontAndBack model.counters counter
         updatedCounters = front ++ back
       in
-        { model | counters = updatedCounters }
+        ({ model | counters = updatedCounters }, Cmd.none)
 
-    ChangeLable counter newLabel ->
+    (ChangeLable counter newLabel, EditingRoulette) ->
       let
         (front, back) = separateIntoFrontAndBack model.counters counter
         updatedCounter = { counter | label = newLabel}
         updatedCounters = front ++ [updatedCounter] ++ back
       in
-        { model | counters = updatedCounters }
+        ({ model | counters = updatedCounters }, Cmd.none)
+    
+    (StartSpinningRoulette, EditingRoulette) ->
+      ({ model | scene = RouletteSpinning, rotationPercentageVelocity = 20.0 }, Cmd.none)
+
+    (SpinRoulette _, RouletteSpinning) ->
+      let
+        (rotationPercentage_, rotationPercentageVelocity_) = updateRotation model.rotationPercentage model.rotationPercentageVelocity
+      in
+        ({ model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_}, Cmd.none)
+    
+    (StopRoulette _, RouletteSpinning) ->
+      ({ model | scene = RouletteStopped }, Cmd.none)
+    
+    (ShowResult _, RouletteStopped) ->
+      ({ model | scene = ResultShowed}, Cmd.none)
+    
+    (HideResult, ResultShowed) ->
+      (model, Cmd.none)
+    
+    (_, _) ->
+      (model, Cmd.none)
 
 newCounter : Counters -> Counter
 newCounter counters =
@@ -121,15 +158,29 @@ separateIntoFrontAndBack counters counter =
   in
     (frontCounters, backCounters)
 
+updateRotation : Float -> Float -> (Float, Float)
+updateRotation rotationPercentage rotationPercentageVelocity =
+  let
+    newRotationPercentage = rotationPercentage + rotationPercentageVelocity
+    tempVelocity = 0.98 * rotationPercentageVelocity
+    newRotationPercentageVelocity =
+      if tempVelocity > 0.005 then
+        tempVelocity
+      else
+        0.0
+  in
+    (newRotationPercentage, newRotationPercentageVelocity)
 
 -- VIEW
 
 view : Model -> Html Msg
 view model =
   div []
-    [ viewRoulette model.counters colorList 25.0
+    [ viewRoulette model.counters colorList model.rotationPercentage
     , div [] <| viewCounters model.counters colorList
     , button [ onClick AddItem ] [ text "Add" ]
+    , button [ onClick StartSpinningRoulette ] [ text "Start" ]
+    , viewResult model.scene
     ]
 
 viewRoulette : Counters -> Colors -> Float -> Html Msg
@@ -188,3 +239,26 @@ viewCounter counter color =
       , button [ style "display" "inline", onClick (Increment counter) ] [ text "+" ]
       , button [ style "display" "inline", onClick (DeleteItem counter) ] [ text "Delete" ]
       ]
+
+viewResult : Scene -> Html Msg
+viewResult scene =
+  case scene of
+    ResultShowed ->
+      text "RESULT"
+    _ ->
+      text ""
+
+-- Subscription
+
+subscriptions : Model -> Sub Msg
+subscriptions model =
+  case model.scene of
+    RouletteSpinning ->
+      if model.rotationPercentageVelocity /= 0 then
+        Time.every 30 SpinRoulette
+      else
+        Time.every 200 StopRoulette
+    RouletteStopped ->
+      Time.every 200 ShowResult
+    _ ->
+      Sub.none

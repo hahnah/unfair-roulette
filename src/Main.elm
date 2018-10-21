@@ -138,7 +138,7 @@ update msg model =
       ({ model | scene = ResultShowed}, Cmd.none)
     
     (HideResult, ResultShowed) ->
-      (model, Cmd.none)
+      ({ model | scene = EditingRoulette }, Cmd.none)
     
     (_, _) ->
       (model, Cmd.none)
@@ -244,7 +244,9 @@ viewResult : Scene -> Html Msg
 viewResult scene =
   case scene of
     ResultShowed ->
-      text "RESULT"
+      div []
+        [ text "RESULT"
+        , button [ onClick HideResult ] [ text "Close"] ]
     _ ->
       text ""
 

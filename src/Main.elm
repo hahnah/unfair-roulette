@@ -86,7 +86,10 @@ update msg model =
         model
 
     AddItem ->
-      { model | counters = List.append model.counters <| [newCounter model.counters] }
+      if List.length model.counters < model.maxCounters then
+        { model | counters = List.append model.counters <| [newCounter model.counters] }
+      else
+        model
     
     DeleteItem counter ->
       let
@@ -156,12 +159,16 @@ viewFanShape fanShape =
 
 colorList : Colors
 colorList =
-  [ "#ff0000"
-  , "#ffff00"
-  , "#00ff00"
-  , "#00ffff"
-  , "#0000ff"
-  , "#ff00ff"
+  [ "#ffec00"
+  , "#9cc45a"
+  , "#fadce5"
+  , "#9b7bb4"
+  , "#ecaeca"
+  , "#d8e27f"
+  , "#c4a16c"
+  , "#f7edd0"
+  , "#797d8a"
+  , "#19a591"
   ]
 
 viewCounters : Counters -> Colors -> List (Html Msg)
@@ -181,10 +188,3 @@ viewCounter counter color =
       , button [ style "display" "inline", onClick (Increment counter) ] [ text "+" ]
       , button [ style "display" "inline", onClick (DeleteItem counter) ] [ text "Delete" ]
       ]
-
-typeOfIncrementButton : Counter -> Html.Attribute msg
-typeOfIncrementButton counter =
-  if counter.count < 10 then
-    style "type" "button"
-  else
-    style "type" "button-disabled" 

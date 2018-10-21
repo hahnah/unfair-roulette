@@ -5,7 +5,7 @@ import Html.Attributes exposing (style)
 import List
 import Maybe
 import Svg exposing (svg, circle)
-import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, fillOpacity, stroke, strokeWidth, strokeDashoffset, strokeDasharray)
+import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, fillOpacity, stroke, strokeWidth, strokeDashoffset, strokeDasharray, transform)
 
 main =
   Browser.sandbox
@@ -20,6 +20,7 @@ main =
 type alias Model =
   { counters: Counters
   , maxCounters: Int
+  , rotationPercentage: Float
   }
 
 init : Int -> Model
@@ -30,7 +31,7 @@ init num =
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
   in
-    Model counters maxCounters
+    Model counters maxCounters 0.0
 
 type alias Counters = List Counter
 
@@ -127,13 +128,13 @@ separateIntoFrontAndBack counters counter =
 view : Model -> Html Msg
 view model =
   div []
-    [ viewRoulette model.counters colorList
+    [ viewRoulette model.counters colorList 25.0
     , div [] <| viewCounters model.counters colorList
     , button [ onClick AddItem ] [ text "Add" ]
     ]
 
-viewRoulette : Counters -> Colors -> Html Msg
-viewRoulette counters colors =
+viewRoulette : Counters -> Colors -> Float -> Html Msg
+viewRoulette counters colors rotationPercentage =
   let
     counts = List.map (\counter -> toFloat counter.count) counters
     total = List.sum counts
@@ -143,12 +144,12 @@ viewRoulette counters colors =
   in
     svg
       [ viewBox "0 0 63.6619772368 63.6619772368" , width "300px" ]
-      (List.map (\fanShape -> viewFanShape fanShape) fanShapes)
+      (List.map (\fanShape -> viewFanShape fanShape rotationPercentage) fanShapes)
       
-viewFanShape : FanShape -> Html Msg
-viewFanShape fanShape =
+viewFanShape : FanShape -> Float -> Html Msg
+viewFanShape fanShape rotationPercentage =
   let
-    strokeDashoffset_ = String.fromFloat <| 25.0 - fanShape.offset
+    strokeDashoffset_ = String.fromFloat <| 25.0 - fanShape.offset - rotationPercentage
     strokeDasharray_ = String.fromFloat fanShape.percentage ++ " " ++ (String.fromFloat <| 100.0 - fanShape.percentage)
   in
     circle

@@ -57,6 +57,7 @@ type Msg
   = Increment Counter
   | Decrement Counter
   | AddItem
+  | DeleteItem Counter
   | ChangeLable Counter String
 
 
@@ -86,6 +87,13 @@ update msg model =
 
     AddItem ->
       { model | counters = List.append model.counters <| [newCounter model.counters] }
+    
+    DeleteItem counter ->
+      let
+        (front, back) = separateIntoFrontAndBack model.counters counter
+        updatedCounters = front ++ back
+      in
+        { model | counters = updatedCounters }
 
     ChangeLable counter newLabel ->
       let
@@ -171,6 +179,7 @@ viewCounter counter color =
       , button [ style "display" "inline", onClick (Decrement counter) ] [ text "-" ]
       , div [ style "display" "inline" ] [ text count ]
       , button [ style "display" "inline", onClick (Increment counter) ] [ text "+" ]
+      , button [ style "display" "inline", onClick (DeleteItem counter) ] [ text "Delete" ]
       ]
 
 typeOfIncrementButton : Counter -> Html.Attribute msg

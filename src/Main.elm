@@ -1,11 +1,11 @@
 import Browser
-import Html exposing (Html, button, div, text)
-import Html.Events exposing (onClick)
+import Html exposing (Html, button, div, text, input)
+import Html.Events exposing (onClick, onInput)
+import Html.Attributes exposing (style)
 import List
 import Maybe
 import Svg exposing (svg, circle)
 import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, fillOpacity, stroke, strokeWidth, strokeDashoffset, strokeDasharray)
-import Debug
 
 main =
   Browser.sandbox
@@ -33,7 +33,7 @@ type alias Counters = List Counter
 
 type alias Counter =
   { id: String
-  , name: String
+  , label: String
   , count: Int
   }
 
@@ -43,6 +43,10 @@ type alias FanShape =
   , color: String
   }
 
+type alias Color = String
+
+type alias Colors = List Color
+
 
 -- MSG
 
@@ -50,6 +54,7 @@ type Msg
   = Increment Counter
   | Decrement Counter
   | AddItem
+  | ChangeLable Counter String
 
 
 -- UPDATE
@@ -79,6 +84,14 @@ update msg model =
     AddItem ->
       { model | counters = List.append model.counters <| [newCounter model.counters] }
 
+    ChangeLable counter newLabel ->
+      let
+        (front, back) = separateIntoFrontAndBack model.counters counter
+        updatedCounter = { counter | label = newLabel}
+        updatedCounters = front ++ [updatedCounter] ++ back
+      in
+        { model | counters = updatedCounters }
+
 newCounter : Counters -> Counter
 newCounter counters =
   let
@@ -100,26 +113,18 @@ separateIntoFrontAndBack counters counter =
 view : Model -> Html Msg
 view model =
   div []
-    [ viewRoulette model.counters
-    , div [] <| List.map viewCounter model.counters
+    [ viewRoulette model.counters colorList
+    , div [] <| viewCounters model.counters colorList
     , button [ onClick AddItem ] [ text "Add" ]
     ]
 
-viewRoulette : Counters -> Html Msg
-viewRoulette counters =
+viewRoulette : Counters -> Colors -> Html Msg
+viewRoulette counters colors =
   let
     counts = List.map (\counter -> toFloat counter.count) counters
     total = List.sum counts
     percentages = List.map (\count -> 100.0 * count / total) counts
     offsets = List.foldl (\percentage acc -> List.append acc [(Maybe.withDefault 0.0 <| List.maximum acc) + percentage]) [0.0] percentages
-    colors =
-      [ "#ff0000"
-      , "#ffff00"
-      , "#00ff00"
-      , "#00ffff"
-      , "#0000ff"
-      , "#ff00ff"
-      ]
     fanShapes = List.map3 (\offset percentage color -> FanShape offset percentage color) offsets percentages colors
   in
     svg
@@ -138,13 +143,29 @@ viewFanShape fanShape =
       , stroke fanShape.color, strokeWidth "31.8309886184", strokeDashoffset strokeDashoffset_, strokeDasharray strokeDasharray_ ]
       []
 
-viewCounter : Counter -> Html Msg
-viewCounter counter =
+colorList : Colors
+colorList =
+  [ "#ff0000"
+  , "#ffff00"
+  , "#00ff00"
+  , "#00ffff"
+  , "#0000ff"
+  , "#ff00ff"
+  ]
+
+viewCounters : Counters -> Colors -> List (Html Msg)
+viewCounters counters colors =
+  List.map2 viewCounter counters colors
+
+viewCounter : Counter -> Color -> Html Msg
+viewCounter counter color =
   let
     count = String.fromInt counter.count
   in
     div []
-      [ button [ onClick (Decrement counter) ] [ text "-" ]
-      , div [] [ text count ]
-      , button [ onClick (Increment counter) ] [ text "+" ]
+      [ div [ style "display" "inline", style "background-color" color ] [ text "　" ]
+      , input [ style "type" "text", onInput <| ChangeLable counter ] [ text counter.label ]
+      , button [ style "display" "inline", onClick (Decrement counter) ] [ text "-" ]
+      , div [ style "display" "inline" ] [ text count ]
+      , button [ style "display" "inline", onClick (Increment counter) ] [ text "+" ]
       ]

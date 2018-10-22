@@ -6,8 +6,8 @@ import Html.Events exposing (onClick, onInput)
 import Html.Attributes exposing (style)
 import List
 import Maybe
-import Svg exposing (svg, circle)
-import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, fillOpacity, stroke, strokeWidth, strokeDashoffset, strokeDasharray, transform)
+import Svg exposing (svg, circle, polygon)
+import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, points, fillOpacity, stroke, strokeWidth, strokeDashoffset, strokeDasharray, transform)
 import Time
 import Random
 
@@ -200,7 +200,7 @@ viewRoulette counters colors rotationPercentage =
   in
     svg
       [ viewBox "0 0 63.6619772368 63.6619772368" , width "300px" ]
-      (List.map (\fanShape -> viewFanShape fanShape rotationPercentage) fanShapes)
+      (List.append (List.map (\fanShape -> viewFanShape fanShape rotationPercentage) fanShapes) [viewRoulettePointer])
       
 viewFanShape : FanShape -> Float -> Html Msg
 viewFanShape fanShape rotationPercentage =
@@ -227,6 +227,14 @@ colorList =
   , "#797d8a"
   , "#19a591"
   ]
+
+viewRoulettePointer : Html Msg
+viewRoulettePointer =
+  polygon
+    [ points "29.5309886184,0 34.3309886184,0 31.8309886184,6"
+    , style "fill" "#e50011"
+    ]
+    []
 
 viewCounters : Counters -> Colors -> List (Html Msg)
 viewCounters counters colors =

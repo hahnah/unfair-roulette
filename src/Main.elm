@@ -170,7 +170,7 @@ updateRotation rotationPercentage rotationPercentageVelocity decayRate =
     newRotationPercentage = rotationPercentage + rotationPercentageVelocity
     tempVelocity = decayRate * rotationPercentageVelocity
     newRotationPercentageVelocity =
-      if tempVelocity > 0.01 then
+      if tempVelocity > 0.02 then
         tempVelocity
       else
         0.0

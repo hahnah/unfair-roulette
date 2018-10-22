@@ -164,7 +164,7 @@ updateRotation rotationPercentage rotationPercentageVelocity =
     newRotationPercentage = rotationPercentage + rotationPercentageVelocity
     tempVelocity = 0.98 * rotationPercentageVelocity
     newRotationPercentageVelocity =
-      if tempVelocity > 0.005 then
+      if tempVelocity > 0.01 then
         tempVelocity
       else
         0.0

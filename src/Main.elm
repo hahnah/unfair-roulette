@@ -9,6 +9,7 @@ import Maybe
 import Svg exposing (svg, circle)
 import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, fillOpacity, stroke, strokeWidth, strokeDashoffset, strokeDasharray, transform)
 import Time
+import Random
 
 main : Program () Model Msg
 main =
@@ -28,6 +29,7 @@ type alias Model =
   , maxCounters: Int
   , rotationPercentage: Float
   , rotationPercentageVelocity: Float
+  , decayRate: Float
   }
 
 init : Int -> (Model, Cmd Msg)
@@ -37,7 +39,7 @@ init num =
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
   in
-    (Model EditingRoulette counters maxCounters 0.0 0.0, Cmd.none)
+    (Model EditingRoulette counters maxCounters 0.0 0.0 0.0, Cmd.none)
 
 type alias Counters = List Counter
 
@@ -71,7 +73,8 @@ type Msg
   | AddItem
   | DeleteItem Counter
   | ChangeLable Counter String
-  | StartSpinningRoulette
+  | OnClickStart
+  | StartSpinningRoulette (Float, Float)
   | SpinRoulette Time.Posix
   | StopRoulette Time.Posix
   | ShowResult Time.Posix
@@ -122,12 +125,15 @@ update msg model =
       in
         ({ model | counters = updatedCounters }, Cmd.none)
     
-    (StartSpinningRoulette, EditingRoulette) ->
-      ({ model | scene = RouletteSpinning, rotationPercentageVelocity = 20.0 }, Cmd.none)
+    (OnClickStart, EditingRoulette) ->
+      (model, Random.generate StartSpinningRoulette <| Random.pair (Random.float 10.0 20.0) (Random.float 0.97 0.99))
+
+    (StartSpinningRoulette (initialVelocity, decayRate), EditingRoulette) ->
+      ({ model | scene = RouletteSpinning, rotationPercentageVelocity = initialVelocity, decayRate = decayRate }, Cmd.none)
 
     (SpinRoulette _, RouletteSpinning) ->
       let
-        (rotationPercentage_, rotationPercentageVelocity_) = updateRotation model.rotationPercentage model.rotationPercentageVelocity
+        (rotationPercentage_, rotationPercentageVelocity_) = updateRotation model.rotationPercentage model.rotationPercentageVelocity model.decayRate
       in
         ({ model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_}, Cmd.none)
     
@@ -158,11 +164,11 @@ separateIntoFrontAndBack counters counter =
   in
     (frontCounters, backCounters)
 
-updateRotation : Float -> Float -> (Float, Float)
-updateRotation rotationPercentage rotationPercentageVelocity =
+updateRotation : Float -> Float -> Float -> (Float, Float)
+updateRotation rotationPercentage rotationPercentageVelocity decayRate =
   let
     newRotationPercentage = rotationPercentage + rotationPercentageVelocity
-    tempVelocity = 0.98 * rotationPercentageVelocity
+    tempVelocity = decayRate * rotationPercentageVelocity
     newRotationPercentageVelocity =
       if tempVelocity > 0.01 then
         tempVelocity
@@ -179,7 +185,7 @@ view model =
     [ viewRoulette model.counters colorList model.rotationPercentage
     , div [] <| viewCounters model.counters colorList
     , button [ onClick AddItem ] [ text "Add" ]
-    , button [ onClick StartSpinningRoulette ] [ text "Start" ]
+    , button [ onClick OnClickStart ] [ text "Start" ]
     , viewResult model.scene
     ]
 

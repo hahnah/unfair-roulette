@@ -41,7 +41,7 @@ init num =
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
   in
-    (Model EditingRoulette counters maxCounters 0.0 0.0 0.0 dummyCounter, Cmd.none)
+    (Model EditingRoulette counters maxCounters 25.0 0.0 0.0 dummyCounter, Cmd.none)
 
 type alias Counters = List Counter
 
@@ -134,7 +134,7 @@ update msg model =
         ({ model | counters = updatedCounters }, Cmd.none)
     
     (OnClickStart, EditingRoulette) ->
-      (model, Random.generate StartSpinningRoulette <| Random.pair (Random.float 10.0 20.0) (Random.float 0.97 0.99))
+      (model, Random.generate StartSpinningRoulette <| Random.pair (Random.float -20.0 -10.0) (Random.float 0.97 0.99))
 
     (StartSpinningRoulette (initialVelocity, decayRate), EditingRoulette) ->
       ({ model | scene = RouletteSpinning, rotationPercentageVelocity = initialVelocity, decayRate = decayRate }, Cmd.none)
@@ -181,13 +181,13 @@ updateRotation rotationPercentage rotationPercentageVelocity decayRate =
   let
     tempRotationPercentage = rotationPercentage + rotationPercentageVelocity
     newRotationPercentage = 
-      if tempRotationPercentage >= 100.0 then
-        tempRotationPercentage - 100.0
+      if tempRotationPercentage < 0.0 then
+        tempRotationPercentage + 100.0
       else
         tempRotationPercentage
     tempVelocity = decayRate * rotationPercentageVelocity
     newRotationPercentageVelocity =
-      if tempVelocity > 0.02 then
+      if tempVelocity < -0.02 then
         tempVelocity
       else
         0.0
@@ -220,7 +220,7 @@ calculateCollisionRanges counters rotationPercentage =
     offsets = List.foldl (\percentage acc -> List.append acc [(Maybe.withDefault 0.0 <| List.maximum acc) + percentage]) [0.0] percentages
   in
     List.map2 (\percentage offset ->
-      RotationRange (25 - offset - percentage) <| 25.0 - offset) percentages offsets
+      RotationRange (-offset + percentage) <| -offset) percentages offsets
   
 zip : List a -> List b -> List (a, b)
 zip xs ys =
@@ -255,7 +255,7 @@ viewRoulette counters colors rotationPercentage =
 viewFanShape : FanShape -> Float -> Html Msg
 viewFanShape fanShape rotationPercentage =
   let
-    strokeDashoffset_ = String.fromFloat <| 25.0 - fanShape.offset - rotationPercentage
+    strokeDashoffset_ = String.fromFloat <|  -fanShape.offset + rotationPercentage
     strokeDasharray_ = String.fromFloat fanShape.percentage ++ " " ++ (String.fromFloat <| 100.0 - fanShape.percentage)
   in
     circle

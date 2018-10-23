@@ -5,7 +5,8 @@ import Html exposing (Html, button, div, text, input)
 import Html.Events exposing (onClick, onInput)
 import Html.Attributes exposing (style)
 import List
-import Maybe
+import Tuple
+import Maybe exposing (Maybe)
 import Svg exposing (svg, circle, polygon)
 import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, points, fillOpacity, stroke, strokeWidth, strokeDashoffset, strokeDasharray, transform)
 import Time
@@ -30,6 +31,7 @@ type alias Model =
   , rotationPercentage: Float
   , rotationPercentageVelocity: Float
   , decayRate: Float
+  , pointedCounter: Counter
   }
 
 init : Int -> (Model, Cmd Msg)
@@ -39,7 +41,7 @@ init num =
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
   in
-    (Model EditingRoulette counters maxCounters 0.0 0.0 0.0, Cmd.none)
+    (Model EditingRoulette counters maxCounters 0.0 0.0 0.0 dummyCounter, Cmd.none)
 
 type alias Counters = List Counter
 
@@ -65,6 +67,12 @@ type Scene
   | RouletteStopped
   | ResultShowed
 
+type alias RotationRange =
+  { min: Float
+  , max: Float
+  }
+
+
 -- MSG
 
 type Msg
@@ -77,7 +85,7 @@ type Msg
   | StartSpinningRoulette (Float, Float)
   | SpinRoulette Time.Posix
   | StopRoulette Time.Posix
-  | ShowResult Time.Posix
+  | ShowResult Counter Time.Posix
   | HideResult
 
 -- UPDATE
@@ -140,14 +148,18 @@ update msg model =
     (StopRoulette _, RouletteSpinning) ->
       ({ model | scene = RouletteStopped }, Cmd.none)
     
-    (ShowResult _, RouletteStopped) ->
-      ({ model | scene = ResultShowed}, Cmd.none)
+    (ShowResult pointedItem _, RouletteStopped) ->
+      ({ model | scene = ResultShowed, pointedCounter = pointedItem}, Cmd.none)
     
     (HideResult, ResultShowed) ->
-      ({ model | scene = EditingRoulette }, Cmd.none)
+      ({ model | scene = EditingRoulette, pointedCounter = dummyCounter }, Cmd.none)
     
     (_, _) ->
       (model, Cmd.none)
+
+dummyCounter : Counter
+dummyCounter =
+  Counter -1 "" 0
 
 newCounter : Counters -> Counter
 newCounter counters =
@@ -167,7 +179,12 @@ separateIntoFrontAndBack counters counter =
 updateRotation : Float -> Float -> Float -> (Float, Float)
 updateRotation rotationPercentage rotationPercentageVelocity decayRate =
   let
-    newRotationPercentage = rotationPercentage + rotationPercentageVelocity
+    tempRotationPercentage = rotationPercentage + rotationPercentageVelocity
+    newRotationPercentage = 
+      if tempRotationPercentage >= 100.0 then
+        tempRotationPercentage - 100.0
+      else
+        tempRotationPercentage
     tempVelocity = decayRate * rotationPercentageVelocity
     newRotationPercentageVelocity =
       if tempVelocity > 0.02 then
@@ -176,6 +193,39 @@ updateRotation rotationPercentage rotationPercentageVelocity decayRate =
         0.0
   in
     (newRotationPercentage, newRotationPercentageVelocity)
+
+checkPointedItem : Counters -> Float -> Counter
+checkPointedItem counters rotationPercentage =
+  let
+    maybePointedItem =
+      calculateCollisionRanges counters rotationPercentage
+        |> zip counters
+        |> List.sortBy (\(_, rotationRange) -> rotationRange.max)
+        |> List.head
+        |> Maybe.map (\(counter, rotationRange) -> counter)
+  in
+    case maybePointedItem of
+      Just item ->
+        item 
+    
+      Nothing ->
+        dummyCounter
+
+calculateCollisionRanges : Counters -> Float -> List RotationRange
+calculateCollisionRanges counters rotationPercentage =
+  let
+    counts = List.map (\counter -> toFloat counter.count) counters
+    total = List.sum counts
+    percentages = List.map (\count -> 100.0 * count / total) counts
+    offsets = List.foldl (\percentage acc -> List.append acc [(Maybe.withDefault 0.0 <| List.maximum acc) + percentage]) [0.0] percentages
+  in
+    List.map2 (\percentage offset ->
+      RotationRange (25 - offset - percentage) <| 25.0 - offset) percentages offsets
+  
+zip : List a -> List b -> List (a, b)
+zip xs ys =
+  List.map2 Tuple.pair xs ys
+
 
 -- VIEW
 
@@ -186,7 +236,7 @@ view model =
     , div [] <| viewCounters model.counters colorList
     , button [ onClick AddItem ] [ text "Add" ]
     , button [ onClick OnClickStart ] [ text "Start" ]
-    , viewResult model.scene
+    , viewResult model.scene model.pointedCounter
     ]
 
 viewRoulette : Counters -> Colors -> Float -> Html Msg
@@ -254,12 +304,12 @@ viewCounter counter color =
       , button [ style "display" "inline", onClick (DeleteItem counter) ] [ text "Delete" ]
       ]
 
-viewResult : Scene -> Html Msg
-viewResult scene =
+viewResult : Scene -> Counter -> Html Msg
+viewResult scene result =
   case scene of
     ResultShowed ->
       div []
-        [ text "RESULT"
+        [ text result.label
         , button [ onClick HideResult ] [ text "Close"] ]
     _ ->
       text ""
@@ -275,6 +325,6 @@ subscriptions model =
       else
         Time.every 200 StopRoulette
     RouletteStopped ->
-      Time.every 200 ShowResult
+      Time.every 200 <| ShowResult (checkPointedItem model.counters model.rotationPercentage)
     _ ->
       Sub.none

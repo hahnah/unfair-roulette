@@ -179,12 +179,7 @@ separateIntoFrontAndBack counters counter =
 updateRotation : Float -> Float -> Float -> (Float, Float)
 updateRotation rotationPercentage rotationPercentageVelocity decayRate =
   let
-    tempRotationPercentage = rotationPercentage + rotationPercentageVelocity
-    newRotationPercentage = 
-      if tempRotationPercentage < 0.0 then
-        tempRotationPercentage + 100.0
-      else
-        tempRotationPercentage
+    newRotationPercentage = rotationPercentage + rotationPercentageVelocity
     tempVelocity = decayRate * rotationPercentageVelocity
     newRotationPercentageVelocity =
       if tempVelocity < -0.02 then

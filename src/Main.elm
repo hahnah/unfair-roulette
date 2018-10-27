@@ -12,6 +12,7 @@ import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, points, fillOpa
 import Time
 import Random
 
+
 main : Program () Model Msg
 main =
   Browser.element
@@ -41,7 +42,7 @@ init num =
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
   in
-    (Model EditingRoulette counters maxCounters 25.0 0.0 0.0 dummyCounter, Cmd.none)
+    (Model EditingRoulette counters maxCounters 0.0 0.0 0.0 dummyCounter, Cmd.none)
 
 type alias Counters = List Counter
 
@@ -85,8 +86,9 @@ type Msg
   | StartSpinningRoulette (Float, Float)
   | SpinRoulette Time.Posix
   | StopRoulette Time.Posix
-  | ShowResult Counter Time.Posix
+  | ShowResult Time.Posix
   | HideResult
+
 
 -- UPDATE
 
@@ -134,22 +136,29 @@ update msg model =
         ({ model | counters = updatedCounters }, Cmd.none)
     
     (OnClickStart, EditingRoulette) ->
-      (model, Random.generate StartSpinningRoulette <| Random.pair (Random.float -20.0 -10.0) (Random.float 0.97 0.99))
+      (model, Random.generate StartSpinningRoulette <| Random.pair (Random.float 10.0 20.0) (Random.float 0.97 0.99))
 
     (StartSpinningRoulette (initialVelocity, decayRate), EditingRoulette) ->
       ({ model | scene = RouletteSpinning, rotationPercentageVelocity = initialVelocity, decayRate = decayRate }, Cmd.none)
 
     (SpinRoulette _, RouletteSpinning) ->
       let
+        pointedCounter_ =
+          calculateCollisionRanges model.counters model.rotationPercentage
+            |> List.map2 (\counter collisionRange -> Tuple.pair counter <| willBeNewlyPointed model.rotationPercentageVelocity collisionRange) model.counters
+            |> List.filter (\(counter, willBeNewlyPointed_) -> willBeNewlyPointed_)
+            |> List.head
+            |> Maybe.withDefault (model.pointedCounter, False)
+            |> Tuple.first
         (rotationPercentage_, rotationPercentageVelocity_) = updateRotation model.rotationPercentage model.rotationPercentageVelocity model.decayRate
       in
-        ({ model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_}, Cmd.none)
+        ({ model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_, pointedCounter = pointedCounter_}, Cmd.none)
     
     (StopRoulette _, RouletteSpinning) ->
       ({ model | scene = RouletteStopped }, Cmd.none)
     
-    (ShowResult pointedItem _, RouletteStopped) ->
-      ({ model | scene = ResultShowed, pointedCounter = pointedItem}, Cmd.none)
+    (ShowResult _, RouletteStopped) ->
+      ({ model | scene = ResultShowed}, Cmd.none)
     
     (HideResult, ResultShowed) ->
       ({ model | scene = EditingRoulette, pointedCounter = dummyCounter }, Cmd.none)
@@ -179,32 +188,34 @@ separateIntoFrontAndBack counters counter =
 updateRotation : Float -> Float -> Float -> (Float, Float)
 updateRotation rotationPercentage rotationPercentageVelocity decayRate =
   let
-    newRotationPercentage = rotationPercentage + rotationPercentageVelocity
-    tempVelocity = decayRate * rotationPercentageVelocity
+    newRotationPercentage =
+      rotationPercentage + rotationPercentageVelocity
+        |> carryDownUnder 100.0 100.0
+    tempVelocity =
+      decayRate * rotationPercentageVelocity
     newRotationPercentageVelocity =
-      if tempVelocity < -0.02 then
+      if tempVelocity > 0.02 then
         tempVelocity
       else
         0.0
   in
     (newRotationPercentage, newRotationPercentageVelocity)
 
-checkPointedItem : Counters -> Float -> Counter
-checkPointedItem counters rotationPercentage =
-  let
-    maybePointedItem =
-      calculateCollisionRanges counters rotationPercentage
-        |> zip counters
-        |> List.sortBy (\(_, rotationRange) -> rotationRange.max)
-        |> List.head
-        |> Maybe.map (\(counter, rotationRange) -> counter)
-  in
-    case maybePointedItem of
-      Just item ->
-        item 
-    
-      Nothing ->
-        dummyCounter
+willBeNewlyPointed : Float -> RotationRange -> Bool
+willBeNewlyPointed rotationVelocity collisionRange  =
+  if carryDownUnder 200.0 100.0 (collisionRange.max + rotationVelocity) > 100.0
+    && carryDownUnder 200.0 100.0 (collisionRange.min + rotationVelocity) <= 100
+  then
+    True
+  else
+    False
+
+carryDownUnder : Float -> Float -> Float -> Float
+carryDownUnder maximum decrementStep value =
+  if value < maximum then
+    value
+  else
+    carryDownUnder value decrementStep <| value - decrementStep 
 
 calculateCollisionRanges : Counters -> Float -> List RotationRange
 calculateCollisionRanges counters rotationPercentage =
@@ -212,14 +223,11 @@ calculateCollisionRanges counters rotationPercentage =
     counts = List.map (\counter -> toFloat counter.count) counters
     total = List.sum counts
     percentages = List.map (\count -> 100.0 * count / total) counts
-    offsets = List.foldl (\percentage acc -> List.append acc [(Maybe.withDefault 0.0 <| List.maximum acc) + percentage]) [0.0] percentages
+    offsets =
+      List.foldl (\percentage acc -> List.append acc [(Maybe.withDefault 0.0 <| List.maximum acc) + percentage]) [0.0] percentages
+        |> List.map ((+) rotationPercentage)
   in
-    List.map2 (\percentage offset ->
-      RotationRange (-offset + percentage) <| -offset) percentages offsets
-  
-zip : List a -> List b -> List (a, b)
-zip xs ys =
-  List.map2 Tuple.pair xs ys
+    List.map2 (\percentage offset -> RotationRange offset <| offset + percentage) percentages offsets
 
 
 -- VIEW
@@ -240,17 +248,19 @@ viewRoulette counters colors rotationPercentage =
     counts = List.map (\counter -> toFloat counter.count) counters
     total = List.sum counts
     percentages = List.map (\count -> 100.0 * count / total) counts
-    offsets = List.foldl (\percentage acc -> List.append acc [(Maybe.withDefault 0.0 <| List.maximum acc) + percentage]) [0.0] percentages
+    offsets =
+      List.foldl (\percentage acc -> List.append acc [(Maybe.withDefault 0.0 <| List.maximum acc) + percentage]) [0.0] percentages
+        |> List.map ((+) rotationPercentage)
     fanShapes = List.map3 (\offset percentage color -> FanShape offset percentage color) offsets percentages colors
   in
     svg
       [ viewBox "0 0 63.6619772368 63.6619772368" , width "300px" ]
-      (List.append (List.map (\fanShape -> viewFanShape fanShape rotationPercentage) fanShapes) [viewRoulettePointer])
+      (List.append (List.map (\fanShape -> viewFanShape fanShape) fanShapes) [viewRoulettePointer])
       
-viewFanShape : FanShape -> Float -> Html Msg
-viewFanShape fanShape rotationPercentage =
+viewFanShape : FanShape -> Html Msg
+viewFanShape fanShape =
   let
-    strokeDashoffset_ = String.fromFloat <|  -fanShape.offset + rotationPercentage
+    strokeDashoffset_ = String.fromFloat <|  -fanShape.offset -- Fan shape direction is opposite to Svg.circle, becouse of the specification of dassArray. So I negat fanshape.offset.
     strokeDasharray_ = String.fromFloat fanShape.percentage ++ " " ++ (String.fromFloat <| 100.0 - fanShape.percentage)
   in
     circle
@@ -276,7 +286,7 @@ colorList =
 viewRoulettePointer : Html Msg
 viewRoulettePointer =
   polygon
-    [ points "29.5309886184,0 34.3309886184,0 31.8309886184,6"
+    [ points "63.6619772368,29.5309886184 63.6619772368,34.3309886184 57.6619772368,31.8309886184"
     , style "fill" "#e50011"
     ]
     []
@@ -320,6 +330,6 @@ subscriptions model =
       else
         Time.every 200 StopRoulette
     RouletteStopped ->
-      Time.every 200 <| ShowResult (checkPointedItem model.counters model.rotationPercentage)
+      Time.every 200 ShowResult
     _ ->
       Sub.none

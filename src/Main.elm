@@ -236,7 +236,7 @@ view model =
     [ bootstrap
     , viewRoulette model.counters colorList model.rotationPercentage
     , viewStartButton model.scene
-    , viewResult model.scene model.pointedCounter
+    , viewCurrentlyPointedLable model.scene model.pointedCounter
     , div [] <| viewCounters model.counters colorList
     , viewResultDialog model.scene model.pointedCounter
     ]
@@ -321,8 +321,8 @@ viewStartButton scene =
       text ""
           
 
-viewResult : Scene -> Counter -> Html Msg
-viewResult scene pointedCounter =
+viewCurrentlyPointedLable : Scene -> Counter -> Html Msg
+viewCurrentlyPointedLable scene pointedCounter =
   let
     resultText =
       if pointedCounter.label == "" then

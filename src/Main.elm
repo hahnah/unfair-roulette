@@ -240,7 +240,7 @@ viewRoulette counters colors rotationPercentage =
     fanShapes = List.map3 (\offset percentage color -> FanShape offset percentage color) offsets percentages colors
   in
     svg
-      [ viewBox "0 0 63.6619772368 63.6619772368" , width "300px" ]
+      [ viewBox "0 0 63.6619772368 63.6619772368", width "300px", transform "rotate(90)" ]
       (List.append (List.map (\fanShape -> viewFanShape fanShape) fanShapes) [viewRoulettePointer])
       
 viewFanShape : FanShape -> Html Msg

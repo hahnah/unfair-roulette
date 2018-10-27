@@ -16,7 +16,7 @@ import Random
 main : Program () Model Msg
 main =
   Browser.element
-    { init = \_ -> init 10
+    { init = \_ -> init 12
     , update = update
     , view = view
     , subscriptions = subscriptions
@@ -249,15 +249,17 @@ viewFanShape fanShape =
 colorList : Colors
 colorList =
   [ "#ff7f7f"
-  , "#ff7fff"
-  , "#7fff7f"
+  , "#bf7fff"
+  , "#bfff7f"
+  , "#7fffff"
   , "#ff7fbf"
   , "#7f7fff"
-  , "#7fffff"
   , "#ffff7f"
+  , "#ff7fff"
+  , "#7fbfff"
+  , "#7fff7f"
   , "#ffbf7f"
   , "#7fbfff"
-  , "#7fffbf"
   ]
 
 viewRoulettePointer : Html Msg

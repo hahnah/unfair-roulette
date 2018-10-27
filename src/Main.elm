@@ -1,9 +1,9 @@
 module Main exposing (main)
 
 import Browser
-import Html exposing (Html, button, div, text, input)
+import Html exposing (Html, button, div, text, input, h2, h4, node)
 import Html.Events exposing (onClick, onInput)
-import Html.Attributes exposing (style, value, placeholder)
+import Html.Attributes exposing (style, class, value, placeholder, href, rel)
 import List
 import Tuple
 import Maybe exposing (Maybe)
@@ -11,6 +11,7 @@ import Svg exposing (svg, circle, polygon)
 import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, points, fillOpacity, stroke, strokeWidth, strokeDashoffset, strokeDasharray, transform)
 import Time
 import Random
+import Dialog
 
 
 main : Program () Model Msg
@@ -231,11 +232,13 @@ calculateCollisionRanges counters rotationPercentage =
 
 view : Model -> Html Msg
 view model =
-  div [ style "text-align" "center" ]
-    [ viewRoulette model.counters colorList model.rotationPercentage
+  div [ style "text-align" "center", style "width" "350px", style "margin-left" "auto", style "margin-right" "auto" ]
+    [ bootstrap
+    , viewRoulette model.counters colorList model.rotationPercentage
     , viewStartButton model.scene
     , viewResult model.scene model.pointedCounter
     , div [] <| viewCounters model.counters colorList
+    , viewResultDialog model.scene model.pointedCounter
     ]
 
 viewRoulette : Counters -> Colors -> Float -> Html Msg
@@ -335,13 +338,44 @@ viewResult scene pointedCounter =
         div [] [ text resultText ]
   
       ResultShowed ->
-        div []
-          [ text resultText
-          , button [ onClick HideResult ] [ text "Close"]
-          ]
+        div [] [ text resultText ]
   
       _ ->
         text ""
+
+viewResultDialog : Scene -> Counter -> Html Msg
+viewResultDialog scene pointedCounter =
+  Dialog.view <|
+    case scene of
+      ResultShowed ->
+        Just (dialogConfig pointedCounter)
+
+      _ ->
+        Nothing
+    
+dialogConfig : Counter -> Dialog.Config Msg
+dialogConfig pointedCounter =
+  let
+    resultLabel =
+      if pointedCounter.label == "" then
+        "No." ++ String.fromInt pointedCounter.id
+      else
+        pointedCounter.label
+  in
+    { closeMessage = Just HideResult
+    , containerClass = Nothing
+    , header = Just <| h4 [] [ text "RESULT" ]
+    , body = Just <| h2 [] [ text resultLabel ]
+    , footer = Just <| button [ class "btn btn-success", onClick HideResult ] [ text "OK" ]
+    }
+
+bootstrap : Html msg
+bootstrap =
+    node "link"
+        [ href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+        , rel "stylesheet"
+        ]
+        []
 
 -- Subscription
 

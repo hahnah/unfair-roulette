@@ -221,7 +221,7 @@ calculateCollisionRanges counters rotationPercentage =
 
 view : Model -> Html Msg
 view model =
-  div []
+  div [ style "text-align" "center" ]
     [ viewRoulette model.counters colorList model.rotationPercentage
     , viewStartButton model.scene
     , viewResult model.scene model.pointedCounter

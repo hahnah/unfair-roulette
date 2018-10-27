@@ -299,12 +299,19 @@ viewCounter counter color =
       ]
 
 viewResult : Scene -> Counter -> Html Msg
-viewResult scene result =
+viewResult scene pointedCounter =
   case scene of
     ResultShowed ->
-      div []
-        [ text result.label
-        , button [ onClick HideResult ] [ text "Close"] ]
+      let
+        resultText =
+          if pointedCounter.label == "" then
+            "No." ++ String.fromInt pointedCounter.id
+          else
+            pointedCounter.label
+      in
+        div []
+          [ text resultText
+          , button [ onClick HideResult ] [ text "Close"] ]
     _ ->
       text ""
 

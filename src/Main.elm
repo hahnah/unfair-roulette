@@ -287,10 +287,11 @@ viewCounter : Counter -> Color -> Html Msg
 viewCounter counter color =
   let
     count = String.fromInt counter.count
+    placeholder_ = "No." ++ String.fromInt counter.id
   in
     div []
       [ div [ style "display" "inline", style "background-color" color ] [ text "　" ]
-      , input [ style "type" "text", value counter.label, onInput <| ChangeLable counter ] [ text counter.label ]
+      , input [ style "type" "text", value counter.label, placeholder placeholder_, onInput <| ChangeLable counter ] [ text counter.label ]
       , button [ style "display" "inline", onClick (Decrement counter) ] [ text "-" ]
       , div [ style "display" "inline" ] [ text count ]
       , button [ style "display" "inline", onClick (Increment counter) ] [ text "+" ]

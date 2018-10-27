@@ -133,7 +133,10 @@ update msg model =
       (model, Random.generate StartSpinningRoulette <| Random.pair (Random.float 10.0 20.0) (Random.float 0.97 0.99))
 
     (StartSpinningRoulette (initialVelocity, decayRate), EditingRoulette) ->
-      ({ model | scene = RouletteSpinning, rotationPercentageVelocity = initialVelocity, decayRate = decayRate }, Cmd.none)
+      if isThereEnogthCountersToStart model.counters then
+        ({ model | scene = RouletteSpinning, rotationPercentageVelocity = initialVelocity, decayRate = decayRate }, Cmd.none)
+      else
+        (model, Cmd.none)
 
     (SpinRoulette _, RouletteSpinning) ->
       let
@@ -159,6 +162,13 @@ update msg model =
     
     (_, _) ->
       (model, Cmd.none)
+
+isThereEnogthCountersToStart : Counters -> Bool
+isThereEnogthCountersToStart counters =
+  counters
+    |> List.filter (\counter -> counter.count > 0)
+    |> List.length
+    |> (<) 1
 
 dummyCounter : Counter
 dummyCounter =

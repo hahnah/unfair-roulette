@@ -3,7 +3,7 @@ module Main exposing (main)
 import Browser
 import Html exposing (Html, button, div, text, input)
 import Html.Events exposing (onClick, onInput)
-import Html.Attributes exposing (style)
+import Html.Attributes exposing (style, value, placeholder)
 import List
 import Tuple
 import Maybe exposing (Maybe)
@@ -80,6 +80,7 @@ type Msg
   = Increment Counter
   | Decrement Counter
   | ChangeLable Counter String
+  | Clear Counter
   | OnClickStart
   | StartSpinningRoulette (Float, Float)
   | SpinRoulette Time.Posix
@@ -116,6 +117,14 @@ update msg model =
       let
         (front, back) = separateIntoFrontAndBack model.counters counter
         updatedCounter = { counter | label = newLabel}
+        updatedCounters = front ++ [updatedCounter] ++ back
+      in
+        ({ model | counters = updatedCounters }, Cmd.none)
+    
+    (Clear counter, EditingRoulette) ->
+      let
+        (front, back) = separateIntoFrontAndBack model.counters counter
+        updatedCounter = { counter | count = 0, label = "" }
         updatedCounters = front ++ [updatedCounter] ++ back
       in
         ({ model | counters = updatedCounters }, Cmd.none)
@@ -281,10 +290,11 @@ viewCounter counter color =
   in
     div []
       [ div [ style "display" "inline", style "background-color" color ] [ text "　" ]
-      , input [ style "type" "text", onInput <| ChangeLable counter ] [ text counter.label ]
+      , input [ style "type" "text", value counter.label, onInput <| ChangeLable counter ] [ text counter.label ]
       , button [ style "display" "inline", onClick (Decrement counter) ] [ text "-" ]
       , div [ style "display" "inline" ] [ text count ]
       , button [ style "display" "inline", onClick (Increment counter) ] [ text "+" ]
+      , button [ style "display" "inline", onClick (Clear counter) ] [ text "Clear" ]
       ]
 
 viewResult : Scene -> Counter -> Html Msg

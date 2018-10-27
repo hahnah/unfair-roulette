@@ -301,6 +301,16 @@ viewCounter counter color =
 viewResult : Scene -> Counter -> Html Msg
 viewResult scene pointedCounter =
   case scene of
+    RouletteSpinning ->
+      let
+        resultText =
+          if pointedCounter.label == "" then
+            "No." ++ String.fromInt pointedCounter.id
+          else
+            pointedCounter.label
+      in
+        div [] [ text resultText ]
+ 
     ResultShowed ->
       let
         resultText =

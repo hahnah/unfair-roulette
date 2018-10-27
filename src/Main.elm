@@ -223,9 +223,9 @@ view : Model -> Html Msg
 view model =
   div []
     [ viewRoulette model.counters colorList model.rotationPercentage
-    , div [] <| viewCounters model.counters colorList
-    , button [ onClick OnClickStart ] [ text "Start" ]
+    , viewStartButton model.scene
     , viewResult model.scene model.pointedCounter
+    , div [] <| viewCounters model.counters colorList
     ]
 
 viewRoulette : Counters -> Colors -> Float -> Html Msg
@@ -298,32 +298,40 @@ viewCounter counter color =
       , button [ style "display" "inline", onClick (Clear counter) ] [ text "Clear" ]
       ]
 
-viewResult : Scene -> Counter -> Html Msg
-viewResult scene pointedCounter =
+viewStartButton : Scene -> Html Msg
+viewStartButton scene =
   case scene of
-    RouletteSpinning ->
-      let
-        resultText =
-          if pointedCounter.label == "" then
-            "No." ++ String.fromInt pointedCounter.id
-          else
-            pointedCounter.label
-      in
-        div [] [ text resultText ]
- 
-    ResultShowed ->
-      let
-        resultText =
-          if pointedCounter.label == "" then
-            "No." ++ String.fromInt pointedCounter.id
-          else
-            pointedCounter.label
-      in
-        div []
-          [ text resultText
-          , button [ onClick HideResult ] [ text "Close"] ]
+    EditingRoulette ->
+      div [] [ button [ onClick OnClickStart ] [ text "Start" ] ]
+  
     _ ->
       text ""
+          
+
+viewResult : Scene -> Counter -> Html Msg
+viewResult scene pointedCounter =
+  let
+    resultText =
+      if pointedCounter.label == "" then
+        "No." ++ String.fromInt pointedCounter.id
+      else
+        pointedCounter.label
+  in
+    case scene of
+      RouletteSpinning ->
+        div [] [ text resultText ]
+      
+      RouletteStopped ->
+        div [] [ text resultText ]
+  
+      ResultShowed ->
+        div []
+          [ text resultText
+          , button [ onClick HideResult ] [ text "Close"]
+          ]
+  
+      _ ->
+        text ""
 
 -- Subscription
 

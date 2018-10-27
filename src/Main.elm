@@ -271,16 +271,16 @@ viewFanShape fanShape =
 
 colorList : Colors
 colorList =
-  [ "#ffec00"
-  , "#9cc45a"
-  , "#fadce5"
-  , "#9b7bb4"
-  , "#ecaeca"
-  , "#d8e27f"
-  , "#c4a16c"
-  , "#f7edd0"
-  , "#797d8a"
-  , "#19a591"
+  [ "#ff7f7f"
+  , "#ff7fff"
+  , "#7fff7f"
+  , "#ff7fbf"
+  , "#7f7fff"
+  , "#7fffff"
+  , "#ffff7f"
+  , "#ffbf7f"
+  , "#7fbfff"
+  , "#7fffbf"
   ]
 
 viewRoulettePointer : Html Msg

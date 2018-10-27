@@ -16,7 +16,7 @@ import Random
 main : Program () Model Msg
 main =
   Browser.element
-    { init = \_ -> init 2
+    { init = \_ -> init 10
     , update = update
     , view = view
     , subscriptions = subscriptions
@@ -79,8 +79,6 @@ type alias RotationRange =
 type Msg
   = Increment Counter
   | Decrement Counter
-  | AddItem
-  | DeleteItem Counter
   | ChangeLable Counter String
   | OnClickStart
   | StartSpinningRoulette (Float, Float)
@@ -113,19 +111,6 @@ update msg model =
           ({ model | counters = updatedCounters }, Cmd.none)
       else
         (model, Cmd.none)
-
-    (AddItem, EditingRoulette) ->
-      if List.length model.counters < model.maxCounters then
-        ({ model | counters = List.append model.counters <| [newCounter model.counters] }, Cmd.none)
-      else
-        (model, Cmd.none)
-    
-    (DeleteItem counter, EditingRoulette) ->
-      let
-        (front, back) = separateIntoFrontAndBack model.counters counter
-        updatedCounters = front ++ back
-      in
-        ({ model | counters = updatedCounters }, Cmd.none)
 
     (ChangeLable counter newLabel, EditingRoulette) ->
       let
@@ -169,13 +154,6 @@ update msg model =
 dummyCounter : Counter
 dummyCounter =
   Counter -1 "" 0
-
-newCounter : Counters -> Counter
-newCounter counters =
-  let
-    newID = List.length counters + 1
-  in
-    Counter newID "" 0 
 
 separateIntoFrontAndBack : Counters -> Counter -> (Counters, Counters)
 separateIntoFrontAndBack counters counter =
@@ -237,7 +215,6 @@ view model =
   div []
     [ viewRoulette model.counters colorList model.rotationPercentage
     , div [] <| viewCounters model.counters colorList
-    , button [ onClick AddItem ] [ text "Add" ]
     , button [ onClick OnClickStart ] [ text "Start" ]
     , viewResult model.scene model.pointedCounter
     ]
@@ -306,7 +283,6 @@ viewCounter counter color =
       , button [ style "display" "inline", onClick (Decrement counter) ] [ text "-" ]
       , div [ style "display" "inline" ] [ text count ]
       , button [ style "display" "inline", onClick (Increment counter) ] [ text "+" ]
-      , button [ style "display" "inline", onClick (DeleteItem counter) ] [ text "Delete" ]
       ]
 
 viewResult : Scene -> Counter -> Html Msg

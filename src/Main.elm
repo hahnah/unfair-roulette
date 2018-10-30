@@ -66,7 +66,6 @@ type alias Colors = List Color
 type Scene
   = EditingRoulette
   | RouletteSpinning
-  | RouletteStopped
   | ResultShowed
 
 type alias RotationRange =
@@ -85,7 +84,6 @@ type Msg
   | OnClickStart
   | StartSpinningRoulette (Float, Float)
   | SpinRoulette Time.Posix
-  | StopRoulette Time.Posix
   | ShowResult Time.Posix
   | HideResult
 
@@ -152,11 +150,8 @@ update msg model =
       in
         ({ model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_, pointedCounter = pointedCounter_}, Cmd.none)
     
-    (StopRoulette _, RouletteSpinning) ->
-      ({ model | scene = RouletteStopped }, Cmd.none)
-    
-    (ShowResult _, RouletteStopped) ->
-      ({ model | scene = ResultShowed}, Cmd.none)
+    (ShowResult _, RouletteSpinning) ->
+      ({ model | scene = ResultShowed }, Cmd.none)
     
     (HideResult, ResultShowed) ->
       ({ model | scene = EditingRoulette, pointedCounter = dummyCounter }, Cmd.none)
@@ -334,9 +329,6 @@ viewCurrentlyPointedLable scene pointedCounter =
       RouletteSpinning ->
         div [] [ text resultText ]
       
-      RouletteStopped ->
-        div [] [ text resultText ]
-  
       ResultShowed ->
         div [] [ text resultText ]
   
@@ -383,11 +375,10 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   case model.scene of
     RouletteSpinning ->
-      if model.rotationPercentageVelocity /= 0 then
-        Time.every 30 SpinRoulette
-      else
-        Time.every 200 StopRoulette
-    RouletteStopped ->
-      Time.every 200 ShowResult
+      Time.every 30 <|
+        if model.rotationPercentageVelocity /= 0 then
+          SpinRoulette
+        else
+          ShowResult
     _ ->
       Sub.none

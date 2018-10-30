@@ -300,17 +300,17 @@ viewCounter counter color =
     div []
       [ div [ style "display" "inline", style "background-color" color ] [ text "　" ]
       , input [ style "type" "text", value counter.label, placeholder placeholder_, onInput <| ChangeLable counter ] [ text counter.label ]
-      , button [ style "display" "inline", onClick (Decrement counter) ] [ text "-" ]
+      , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Decrement counter) ] [ text "-" ]
       , div [ style "display" "inline" ] [ text count ]
-      , button [ style "display" "inline", onClick (Increment counter) ] [ text "+" ]
-      , button [ style "display" "inline", onClick (Clear counter) ] [ text "Clear" ]
+      , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Increment counter) ] [ text "+" ]
+      , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Clear counter) ] [ text "Clear" ]
       ]
 
 viewStartButton : Scene -> Html Msg
 viewStartButton scene =
   case scene of
     EditingRoulette ->
-      div [] [ button [ onClick OnClickStart ] [ text "Start" ] ]
+      div [] [ button [ class "btn btn-outline-primary", onClick OnClickStart ] [ text "Start" ] ]
   
     _ ->
       text ""
@@ -364,7 +364,7 @@ dialogConfig pointedCounter =
 bootstrap : Html msg
 bootstrap =
     node "link"
-        [ href "https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css"
+        [ href "https://maxcdn.bootstrapcdn.com/bootstrap/4.1.0/css/bootstrap.min.css"
         , rel "stylesheet"
         ]
         []

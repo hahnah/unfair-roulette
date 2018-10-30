@@ -80,6 +80,7 @@ type Msg
   = Increment Counter
   | Decrement Counter
   | ChangeLable Counter String
+  | ChangeCount Counter String
   | Clear Counter
   | OnClickStart
   | StartSpinningRoulette (Float, Float)
@@ -116,6 +117,14 @@ update msg model =
       let
         (front, back) = separateIntoFrontAndBack model.counters counter
         updatedCounter = { counter | label = newLabel}
+        updatedCounters = front ++ [updatedCounter] ++ back
+      in
+        ({ model | counters = updatedCounters }, Cmd.none)
+    
+    (ChangeCount counter newCount, EditingRoulette) ->
+      let
+        (front, back) = separateIntoFrontAndBack model.counters counter
+        updatedCounter = { counter | count = String.toInt newCount |> Maybe.withDefault (if newCount == "" then 0 else counter.count) }
         updatedCounters = front ++ [updatedCounter] ++ back
       in
         ({ model | counters = updatedCounters }, Cmd.none)
@@ -299,9 +308,9 @@ viewCounter counter color =
   in
     div []
       [ div [ style "display" "inline", style "background-color" color ] [ text "　" ]
-      , input [ style "type" "text", value counter.label, placeholder placeholder_, onInput <| ChangeLable counter ] [ text counter.label ]
+      , input [ style "type" "text", style "width" "9em", value counter.label, placeholder placeholder_, onInput <| ChangeLable counter ] [ text counter.label ]
       , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Decrement counter) ] [ text "-" ]
-      , div [ style "display" "inline" ] [ text count ]
+      , input [ style "type" "number", style "width" "3em", value count, placeholder placeholder_, onInput <| ChangeCount counter, style "display" "inline" ] [ text count ]
       , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Increment counter) ] [ text "+" ]
       , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Clear counter) ] [ text "Clear" ]
       ]

@@ -307,10 +307,14 @@ viewCounter counter color =
     placeholder_ = "No." ++ String.fromInt counter.id
   in
     div []
-      [ div [ style "display" "inline", style "background-color" color ] [ text "　" ]
-      , input [ style "type" "text", style "width" "9em", value counter.label, placeholder placeholder_, onInput <| ChangeLable counter ] [ text counter.label ]
+      [ div [ class "input-group mb-3", style "display" "inline", style "margin-right" "0.2em" ]
+          [ div [ class "input-group-prepend", style "display" "inline" ]
+            [ button [ class "btn btn-outline-secondary", style "display" "inline", style "padding" "0.95em 0.75em 0.75em 0.75em", style "margin-bottom" "0.2em", style "background-color" color ] [ text "" ]
+            , input [ style "type" "text", style "display" "inline", style "width" "8.5em", value counter.label, placeholder placeholder_, onInput <| ChangeLable counter ] [ text counter.label ]
+            ]
+          ]
       , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Decrement counter) ] [ text "-" ]
-      , input [ style "type" "number", style "width" "3em", value count, placeholder placeholder_, onInput <| ChangeCount counter, style "display" "inline" ] [ text count ]
+      , input [ style "type" "number", style "width" "2.5em", value count, placeholder placeholder_, onInput <| ChangeCount counter, style "display" "inline" ] [ text count ]
       , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Increment counter) ] [ text "+" ]
       , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Clear counter) ] [ text "Clear" ]
       ]

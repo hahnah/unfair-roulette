@@ -309,7 +309,7 @@ viewCounter counter color =
     div []
       [ div [ class "input-group mb-3", style "display" "inline", style "margin-right" "0.2em" ]
           [ div [ class "input-group-prepend", style "display" "inline" ]
-            [ button [ class "btn btn-outline-secondary", style "display" "inline", style "padding" "0.95em 0.75em 0.75em 0.75em", style "margin-bottom" "0.2em", style "background-color" color ] [ text "" ]
+            [ button [ class "btn btn-outline-secondary", style "display" "inline", style "padding" "0.95em 0.75em 0.75em 0.75em", style "margin-bottom" "0.2em", style "background-color" color, style "border-color" color, style "cursor" "default" ] [ text "" ]
             , input [ style "type" "text", style "display" "inline", style "width" "8.5em", value counter.label, placeholder placeholder_, onInput <| ChangeLable counter ] [ text counter.label ]
             ]
           ]

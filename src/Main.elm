@@ -323,7 +323,7 @@ viewStartButton : Scene -> Html Msg
 viewStartButton scene =
   case scene of
     EditingRoulette ->
-      div [] [ button [ class "btn btn-outline-primary", onClick OnClickStart ] [ text "Start" ] ]
+      div [] [ button [ class "btn btn-outline-primary", style "width" "270px", style "margin-bottom" "0.5em", onClick OnClickStart ] [ text "Start" ] ]
   
     _ ->
       text ""
@@ -340,10 +340,10 @@ viewCurrentlyPointedLable scene pointedCounter =
   in
     case scene of
       RouletteSpinning ->
-        div [] [ text resultText ]
+        div [ style "height" "1.3em", style "margin" "0.6em 0 1em 0" ] [ text resultText ]
       
       ResultShowed ->
-        div [] [ text resultText ]
+        div [ style "height" "1.3em", style "margin" "0.6em 0 1em 0" ] [ text resultText ]
   
       _ ->
         text ""

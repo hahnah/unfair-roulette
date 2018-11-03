@@ -17,7 +17,7 @@ import Dialog
 main : Program () Model Msg
 main =
   Browser.element
-    { init = \_ -> init 12
+    { init = \_ -> init 12 0.99
     , update = update
     , view = view
     , subscriptions = subscriptions
@@ -36,14 +36,14 @@ type alias Model =
   , pointedCounter: Counter
   }
 
-init : Int -> (Model, Cmd Msg)
-init num =
+init : Int -> Float -> (Model, Cmd Msg)
+init num decayRate =
   let
     counters = List.range 1 num
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
   in
-    (Model EditingRoulette counters maxCounters 0.0 0.0 0.0 dummyCounter, Cmd.none)
+    (Model EditingRoulette counters maxCounters 0.0 0.0 decayRate dummyCounter, Cmd.none)
 
 type alias Counters = List Counter
 
@@ -83,7 +83,7 @@ type Msg
   | ChangeCount Counter String
   | Clear Counter
   | OnClickStart
-  | StartSpinningRoulette (Float, Float)
+  | StartSpinningRoulette Float
   | SpinRoulette Time.Posix
   | ShowResult Time.Posix
   | HideResult
@@ -138,11 +138,11 @@ update msg model =
         ({ model | counters = updatedCounters }, Cmd.none)
     
     (OnClickStart, EditingRoulette) ->
-      (model, Random.generate StartSpinningRoulette <| Random.pair (Random.float 10.0 20.0) (Random.float 0.97 0.99))
+      (model, Random.generate StartSpinningRoulette <| Random.float 10.0 20.0)
 
-    (StartSpinningRoulette (initialVelocity, decayRate), EditingRoulette) ->
+    (StartSpinningRoulette initialVelocity, EditingRoulette) ->
       if isThereEnogthCountersToStart model.counters then
-        ({ model | scene = RouletteSpinning, rotationPercentageVelocity = initialVelocity, decayRate = decayRate }, Cmd.none)
+        ({ model | scene = RouletteSpinning, rotationPercentageVelocity = initialVelocity }, Cmd.none)
       else
         (model, Cmd.none)
 

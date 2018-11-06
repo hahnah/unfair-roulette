@@ -12,6 +12,8 @@ import Svg.Attributes exposing (viewBox, width, cx, cy, r, fill, points, fillOpa
 import Time
 import Random
 import Dialog
+import Process
+import Task
 
 
 main : Program () Model Msg
@@ -33,6 +35,8 @@ type alias Model =
   , rotationPercentage: Float
   , rotationPercentageVelocity: Float
   , decayRate: Float
+  , limitVelocityToStop: Float
+  , goalRotation: Float
   , pointedCounter: Counter
   }
 
@@ -43,7 +47,7 @@ init num decayRate =
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
   in
-    (Model EditingRoulette counters maxCounters 0.0 0.0 decayRate dummyCounter, Cmd.none)
+    (Model EditingRoulette counters maxCounters 0.0 0.0 decayRate 0.0 0.0 dummyCounter, Cmd.none)
 
 type alias Counters = List Counter
 
@@ -66,6 +70,8 @@ type alias Colors = List Color
 type Scene
   = EditingRoulette
   | RouletteSpinning
+  | RouletteSpinningTowardsStop
+  | RouletteStopped
   | ResultShowed
 
 type alias RotationRange =
@@ -83,9 +89,11 @@ type Msg
   | ChangeCount Counter String
   | Clear Counter
   | OnClickStart
-  | StartSpinningRoulette Float
+  | StartSpinningRoulette Float (Float, Float)
   | SpinRoulette Time.Posix
-  | ShowResult Time.Posix
+  | AdjustDecayRate Float
+  | StopRoulette Float
+  | ShowResult
   | HideResult
 
 
@@ -138,11 +146,11 @@ update msg model =
         ({ model | counters = updatedCounters }, Cmd.none)
     
     (OnClickStart, EditingRoulette) ->
-      (model, Random.generate StartSpinningRoulette <| Random.float 10.0 20.0)
+      (model, Random.generate (StartSpinningRoulette 0.99) <| Random.pair (Random.float 10.0 20.0) (Random.float 0.0 50.0))
 
-    (StartSpinningRoulette initialVelocity, EditingRoulette) ->
+    (StartSpinningRoulette decayRate_ (initialVelocity, goal), EditingRoulette) ->
       if isThereEnogthCountersToStart model.counters then
-        ({ model | scene = RouletteSpinning, rotationPercentageVelocity = initialVelocity }, Cmd.none)
+        ({ model | scene = RouletteSpinning, decayRate = decayRate_,rotationPercentageVelocity = initialVelocity, goalRotation = goal, limitVelocityToStop = calculateLimitVelocityToStop 0.2 model.rotationPercentage model.decayRate 100.0 }, Cmd.none)
       else
         (model, Cmd.none)
 
@@ -156,10 +164,37 @@ update msg model =
             |> Maybe.withDefault (model.pointedCounter, False)
             |> Tuple.first
         (rotationPercentage_, rotationPercentageVelocity_) = updateRotation model.rotationPercentage model.rotationPercentageVelocity model.decayRate
+        model_ =
+          { model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_, pointedCounter = pointedCounter_ }
       in
-        ({ model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_, pointedCounter = pointedCounter_}, Cmd.none)
+        if model.rotationPercentageVelocity > 0.2 then --model.limitVelocityToStop then
+          (model_, Cmd.none)
+        else
+          update (AdjustDecayRate 0.9999) model_
     
-    (ShowResult _, RouletteSpinning) ->
+    (SpinRoulette _, RouletteSpinningTowardsStop) ->
+      let
+        pointedCounter_ =
+          calculateCollisionRanges model.counters model.rotationPercentage
+            |> List.map2 (\counter collisionRange -> Tuple.pair counter <| willBeNewlyPointed model.rotationPercentageVelocity collisionRange) model.counters
+            |> List.filter (\(counter, willBeNewlyPointed_) -> willBeNewlyPointed_)
+            |> List.head
+            |> Maybe.withDefault (model.pointedCounter, False)
+            |> Tuple.first
+        (rotationPercentage_, rotationPercentageVelocity_) = updateRotation model.rotationPercentage model.rotationPercentageVelocity model.decayRate
+      in
+        if willReachGoal model.goalRotation model.rotationPercentage model.rotationPercentageVelocity then
+          update (StopRoulette 900) model
+        else
+          ({ model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_, pointedCounter = pointedCounter_}, Cmd.none)
+    
+    (AdjustDecayRate decayRate_, RouletteSpinning) ->
+      ({ model | decayRate = decayRate_, scene = RouletteSpinningTowardsStop }, Cmd.none)
+    
+    (StopRoulette forMilliSeconds, RouletteSpinningTowardsStop) ->
+      ({ model | scene = RouletteStopped}, Process.sleep forMilliSeconds |> Task.perform (always ShowResult))
+
+    (ShowResult, RouletteStopped) ->
       ({ model | scene = ResultShowed }, Cmd.none)
     
     (HideResult, ResultShowed) ->
@@ -178,6 +213,13 @@ isThereEnogthCountersToStart counters =
 dummyCounter : Counter
 dummyCounter =
   Counter -1 "" 0
+
+calculateLimitVelocityToStop : Float -> Float -> Float -> Float -> Float
+calculateLimitVelocityToStop velocity rotation decayRate boundaryRotationOfGoalReachability =
+  if boundaryRotationOfGoalReachability <= rotation then
+    velocity
+  else
+    calculateLimitVelocityToStop (velocity / decayRate) (rotation + velocity) decayRate boundaryRotationOfGoalReachability
 
 separateIntoFrontAndBack : Counters -> Counter -> (Counters, Counters)
 separateIntoFrontAndBack counters counter =
@@ -208,6 +250,16 @@ willBeNewlyPointed rotationVelocity collisionRange  =
   if carryDownUnder 200.0 100.0 (collisionRange.max + rotationVelocity) > 100.0
     && carryDownUnder 200.0 100.0 (collisionRange.min + rotationVelocity) <= 100
   then
+    True
+  else
+    False
+
+willReachGoal : Float -> Float -> Float -> Bool
+willReachGoal goal rotation velocity =
+  let
+    _ = Debug.log "willReachGoal" (rotation < goal && goal <= rotation + velocity)
+  in
+  if rotation < goal && goal <= rotation + velocity then
     True
   else
     False
@@ -342,6 +394,12 @@ viewCurrentlyPointedLable scene pointedCounter =
       RouletteSpinning ->
         div [ style "height" "1.3em", style "margin" "0.6em 0 1em 0" ] [ text resultText ]
       
+      RouletteSpinningTowardsStop ->
+        div [ style "height" "1.3em", style "margin" "0.6em 0 1em 0" ] [ text resultText ]
+
+      RouletteStopped ->
+        div [ style "height" "1.3em", style "margin" "0.6em 0 1em 0" ] [ text resultText ]
+      
       ResultShowed ->
         div [ style "height" "1.3em", style "margin" "0.6em 0 1em 0" ] [ text resultText ]
   
@@ -388,10 +446,8 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
   case model.scene of
     RouletteSpinning ->
-      Time.every 30 <|
-        if model.rotationPercentageVelocity /= 0 then
-          SpinRoulette
-        else
-          ShowResult
+      Time.every 30 SpinRoulette
+    RouletteSpinningTowardsStop ->
+      Time.every 30 SpinRoulette
     _ ->
       Sub.none

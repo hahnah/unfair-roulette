@@ -35,7 +35,6 @@ type alias Model =
   , rotationPercentage: Float
   , rotationPercentageVelocity: Float
   , decayRate: Float
-  , limitVelocityToStop: Float
   , goalRotation: Float
   , pointedCounter: Counter
   }
@@ -47,7 +46,7 @@ init num =
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
   in
-    (Model EditingRoulette counters maxCounters 0.0 0.0 initialDecayRate 0.0 0.0 dummyCounter, Cmd.none)
+    (Model EditingRoulette counters maxCounters 0.0 0.0 initialDecayRate 0.0 dummyCounter, Cmd.none)
 
 type alias Counters = List Counter
 
@@ -198,7 +197,7 @@ update msg model =
 
     (StartSpinningRoulette decayRate_ (initialVelocity, goal), EditingRoulette) ->
       if isThereEnogthCountersToStart model.counters then
-        ({ model | scene = RouletteSpinning, decayRate = decayRate_,rotationPercentageVelocity = initialVelocity, goalRotation = goal, limitVelocityToStop = calculateLimitVelocityToStop limitVelocityOfUniformAcceleration model.rotationPercentage model.decayRate 100.0 }, Cmd.none)
+        ({ model | scene = RouletteSpinning, decayRate = decayRate_,rotationPercentageVelocity = initialVelocity, goalRotation = goal }, Cmd.none)
       else
         (model, Cmd.none)
 
@@ -257,13 +256,6 @@ isThereEnogthCountersToStart counters =
     |> List.filter (\counter -> counter.count > 0)
     |> List.length
     |> (<) 1
-
-calculateLimitVelocityToStop : Float -> Float -> Float -> Float -> Float
-calculateLimitVelocityToStop velocity rotation decayRate boundaryRotationOfGoalReachability =
-  if boundaryRotationOfGoalReachability <= rotation then
-    velocity
-  else
-    calculateLimitVelocityToStop (velocity / decayRate) (rotation + velocity) decayRate boundaryRotationOfGoalReachability
 
 separateIntoFrontAndBack : Counters -> Counter -> (Counters, Counters)
 separateIntoFrontAndBack counters counter =

@@ -104,6 +104,9 @@ minimumVelocity = 0.02
 fairGoalRange : Range
 fairGoalRange = Range 0.0 100.0
 
+milliSecondsToKeepRouletteStopUntilResult : Float
+milliSecondsToKeepRouletteStopUntilResult = 900
+
 dummyCounter : Counter
 dummyCounter = Counter -1 "" 0
 
@@ -231,7 +234,7 @@ update msg model =
         (rotationPercentage_, rotationPercentageVelocity_) = updateRotation model.rotationPercentage model.rotationPercentageVelocity model.decayRate
       in
         if willReachGoal model.goalRotation model.rotationPercentage model.rotationPercentageVelocity then
-          update (StopRoulette 900) model
+          update (StopRoulette milliSecondsToKeepRouletteStopUntilResult) model
         else
           ({ model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_, pointedCounter = pointedCounter_}, Cmd.none)
     

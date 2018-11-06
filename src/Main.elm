@@ -138,7 +138,7 @@ type Msg
   | OnClickStart
   | StartSpinningRoulette Float (Float, Float)
   | SpinRoulette Time.Posix
-  | AdjustDecayRate Float
+  | AdjustDecayRateForSmoothStop Float
   | StopRoulette Float
   | ShowResult
   | HideResult
@@ -217,7 +217,7 @@ update msg model =
         if model.rotationPercentageVelocity > limitVelocityOfUniformAcceleration then
           (model_, Cmd.none)
         else
-          update (AdjustDecayRate smootherDecayRate) model_
+          update (AdjustDecayRateForSmoothStop smootherDecayRate) model_
     
     (SpinRoulette _, RouletteSpinningTowardsStop) ->
       let
@@ -235,7 +235,7 @@ update msg model =
         else
           ({ model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_, pointedCounter = pointedCounter_}, Cmd.none)
     
-    (AdjustDecayRate decayRate_, RouletteSpinning) ->
+    (AdjustDecayRateForSmoothStop decayRate_, RouletteSpinning) ->
       ({ model | decayRate = decayRate_, scene = RouletteSpinningTowardsStop }, Cmd.none)
     
     (StopRoulette forMilliSeconds, RouletteSpinningTowardsStop) ->

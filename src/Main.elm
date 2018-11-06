@@ -19,7 +19,7 @@ import Task
 main : Program () Model Msg
 main =
   Browser.element
-    { init = \_ -> init 12 0.99
+    { init = \_ -> init muximumCounters
     , update = update
     , view = view
     , subscriptions = subscriptions
@@ -40,14 +40,14 @@ type alias Model =
   , pointedCounter: Counter
   }
 
-init : Int -> Float -> (Model, Cmd Msg)
-init num decayRate =
+init : Int -> (Model, Cmd Msg)
+init num =
   let
     counters = List.range 1 num
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
   in
-    (Model EditingRoulette counters maxCounters 0.0 0.0 decayRate 0.0 0.0 dummyCounter, Cmd.none)
+    (Model EditingRoulette counters maxCounters 0.0 0.0 initialDecayRate 0.0 0.0 dummyCounter, Cmd.none)
 
 type alias Counters = List Counter
 
@@ -74,10 +74,58 @@ type Scene
   | RouletteStopped
   | ResultShowed
 
-type alias RotationRange =
+type alias Range =
   { min: Float
   , max: Float
   }
+
+type alias RotationRange =
+ { min: Float
+ , max: Float
+ }
+
+muximumCounters : Int
+muximumCounters = 12
+
+initialDecayRate : Float
+initialDecayRate = 0.99
+
+smootherDecayRate : Float
+smootherDecayRate = 0.9999
+
+initialVelocityRange : Range
+initialVelocityRange = Range 10.0 20.0
+
+limitVelocityOfUniformAcceleration : Float
+limitVelocityOfUniformAcceleration = 0.2
+
+minimumVelocity : Float
+minimumVelocity = 0.02
+
+fairGoalRange : Range
+fairGoalRange = Range 0.0 50.0
+
+dummyCounter : Counter
+dummyCounter = Counter -1 "" 0
+
+colorList : Colors
+colorList =
+  [ "#ff7f7f"
+  , "#bf7fff"
+  , "#bfff7f"
+  , "#7fffff"
+  , "#ff7fbf"
+  , "#7f7fff"
+  , "#ffff7f"
+  , "#ff7fff"
+  , "#7fbfff"
+  , "#7fff7f"
+  , "#ffbf7f"
+  , "#7fbfff"
+  ]
+
+roulettePointerColor : Color
+roulettePointerColor = "#e50011"
 
 
 -- MSG
@@ -146,11 +194,11 @@ update msg model =
         ({ model | counters = updatedCounters }, Cmd.none)
     
     (OnClickStart, EditingRoulette) ->
-      (model, Random.generate (StartSpinningRoulette 0.99) <| Random.pair (Random.float 10.0 20.0) (Random.float 0.0 50.0))
+      (model, Random.generate (StartSpinningRoulette initialDecayRate) <| Random.pair (Random.float initialVelocityRange.min initialVelocityRange.max) (Random.float fairGoalRange.min fairGoalRange.max))
 
     (StartSpinningRoulette decayRate_ (initialVelocity, goal), EditingRoulette) ->
       if isThereEnogthCountersToStart model.counters then
-        ({ model | scene = RouletteSpinning, decayRate = decayRate_,rotationPercentageVelocity = initialVelocity, goalRotation = goal, limitVelocityToStop = calculateLimitVelocityToStop 0.2 model.rotationPercentage model.decayRate 100.0 }, Cmd.none)
+        ({ model | scene = RouletteSpinning, decayRate = decayRate_,rotationPercentageVelocity = initialVelocity, goalRotation = goal, limitVelocityToStop = calculateLimitVelocityToStop limitVelocityOfUniformAcceleration model.rotationPercentage model.decayRate 100.0 }, Cmd.none)
       else
         (model, Cmd.none)
 
@@ -167,10 +215,10 @@ update msg model =
         model_ =
           { model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_, pointedCounter = pointedCounter_ }
       in
-        if model.rotationPercentageVelocity > 0.2 then --model.limitVelocityToStop then
+        if model.rotationPercentageVelocity > limitVelocityOfUniformAcceleration then
           (model_, Cmd.none)
         else
-          update (AdjustDecayRate 0.9999) model_
+          update (AdjustDecayRate smootherDecayRate) model_
     
     (SpinRoulette _, RouletteSpinningTowardsStop) ->
       let
@@ -210,10 +258,6 @@ isThereEnogthCountersToStart counters =
     |> List.length
     |> (<) 1
 
-dummyCounter : Counter
-dummyCounter =
-  Counter -1 "" 0
-
 calculateLimitVelocityToStop : Float -> Float -> Float -> Float -> Float
 calculateLimitVelocityToStop velocity rotation decayRate boundaryRotationOfGoalReachability =
   if boundaryRotationOfGoalReachability <= rotation then
@@ -238,7 +282,7 @@ updateRotation rotationPercentage rotationPercentageVelocity decayRate =
     tempVelocity =
       decayRate * rotationPercentageVelocity
     newRotationPercentageVelocity =
-      if tempVelocity > 0.02 then
+      if tempVelocity > minimumVelocity then
         tempVelocity
       else
         0.0
@@ -324,27 +368,11 @@ viewFanShape fanShape =
       , stroke fanShape.color, strokeWidth "31.8309886184", strokeDashoffset strokeDashoffset_, strokeDasharray strokeDasharray_ ]
       []
 
-colorList : Colors
-colorList =
-  [ "#ff7f7f"
-  , "#bf7fff"
-  , "#bfff7f"
-  , "#7fffff"
-  , "#ff7fbf"
-  , "#7f7fff"
-  , "#ffff7f"
-  , "#ff7fff"
-  , "#7fbfff"
-  , "#7fff7f"
-  , "#ffbf7f"
-  , "#7fbfff"
-  ]
-
 viewRoulettePointer : Html Msg
 viewRoulettePointer =
   polygon
     [ points "63.6619772368,29.5309886184 63.6619772368,34.3309886184 57.6619772368,31.8309886184"
-    , style "fill" "#e50011"
+    , style "fill" roulettePointerColor
     ]
     []
 

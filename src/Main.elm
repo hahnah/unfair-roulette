@@ -102,7 +102,7 @@ minimumVelocity : Float
 minimumVelocity = 0.02
 
 fairGoalRange : Range
-fairGoalRange = Range 0.0 50.0
+fairGoalRange = Range 0.0 100.0
 
 dummyCounter : Counter
 dummyCounter = Counter -1 "" 0

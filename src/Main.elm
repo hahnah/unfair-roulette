@@ -15,7 +15,6 @@ import Dialog
 import Process
 import Task
 
-
 main : Program () Model Msg
 main =
   Browser.element
@@ -37,6 +36,7 @@ type alias Model =
   , decayRate: Float
   , goalRotation: Float
   , pointedCounter: Counter
+  , cheatedGoalRange: Maybe Range
   }
 
 init : Int -> (Model, Cmd Msg)
@@ -45,8 +45,9 @@ init num =
     counters = List.range 1 num
       |> List.map (\id -> Counter id "" 0)
     maxCounters = List.length colorList
+    cheatedGoalRange = Nothing
   in
-    (Model EditingRoulette counters maxCounters 0.0 0.0 initialDecayRate 0.0 dummyCounter, Cmd.none)
+    (Model EditingRoulette counters maxCounters 0.0 0.0 initialDecayRate 0.0 dummyCounter cheatedGoalRange, Cmd.none)
 
 type alias Counters = List Counter
 
@@ -105,7 +106,7 @@ fairGoalRange : Range
 fairGoalRange = Range 0.0 100.0
 
 milliSecondsToKeepRouletteStopUntilResult : Float
-milliSecondsToKeepRouletteStopUntilResult = 900
+milliSecondsToKeepRouletteStopUntilResult = 900.0
 
 dummyCounter : Counter
 dummyCounter = Counter -1 "" 0
@@ -138,6 +139,7 @@ type Msg
   | ChangeLable Counter String
   | ChangeCount Counter String
   | Clear Counter
+  | Cheat Counter
   | OnClickStart
   | StartSpinningRoulette Float (Float, Float)
   | SpinRoulette Time.Posix
@@ -195,8 +197,26 @@ update msg model =
       in
         ({ model | counters = updatedCounters }, Cmd.none)
     
+    (Cheat counter, EditingRoulette) ->
+      let
+        cheatedGoalRange_ =
+          if counter.count > 0 then
+            calculateCollisionRanges model.counters 0.0
+              |> List.take counter.id
+              |> List.reverse
+              |> List.head
+              |> Maybe.andThen (\maybeRange -> Just <| Range (100.0 - maybeRange.max) (100.0 - maybeRange.min))
+          else
+            Nothing
+      in
+        ({model | cheatedGoalRange = cheatedGoalRange_}, Cmd.none)
+    
     (OnClickStart, EditingRoulette) ->
-      (model, Random.generate (StartSpinningRoulette initialDecayRate) <| Random.pair (Random.float initialVelocityRange.min initialVelocityRange.max) (Random.float fairGoalRange.min fairGoalRange.max))
+      let
+        goalRange =
+          Maybe.withDefault fairGoalRange model.cheatedGoalRange
+      in
+        (model, Random.generate (StartSpinningRoulette initialDecayRate) <| Random.pair (Random.float initialVelocityRange.min initialVelocityRange.max) (Random.float goalRange.min goalRange.max))
 
     (StartSpinningRoulette decayRate_ (initialVelocity, goal), EditingRoulette) ->
       if isThereEnogthCountersToStart model.counters then
@@ -252,6 +272,13 @@ update msg model =
     
     (_, _) ->
       (model, Cmd.none)
+
+isZeroRange : Range -> Bool
+isZeroRange range =
+  if range.min == range.max then
+    True
+  else
+    False
 
 isThereEnogthCountersToStart : Counters -> Bool
 isThereEnogthCountersToStart counters =
@@ -384,7 +411,7 @@ viewCounter counter color =
     div []
       [ div [ class "input-group mb-3", style "display" "inline", style "margin-right" "0.2em" ]
           [ div [ class "input-group-prepend", style "display" "inline" ]
-            [ button [ class "btn btn-outline-secondary", style "display" "inline", style "padding" "0.95em 0.75em 0.75em 0.75em", style "margin-bottom" "0.2em", style "background-color" color, style "border-color" color, style "cursor" "default" ] [ text "" ]
+            [ button [ class "btn btn-outline-secondary", style "display" "inline", style "padding" "0.95em 0.75em 0.75em 0.75em", style "margin-bottom" "0.2em", style "background-color" color, style "border-color" color, style "cursor" "default", onClick (Cheat counter) ] [ text "" ]
             , input [ style "type" "text", style "display" "inline", style "width" "8.5em", value counter.label, placeholder placeholder_, onInput <| ChangeLable counter ] [ text counter.label ]
             ]
           ]

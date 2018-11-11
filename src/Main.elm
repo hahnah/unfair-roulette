@@ -354,13 +354,17 @@ calculateCollisionRanges counters rotationPercentage =
 
 view : Model -> Html Msg
 view model =
-  div [ style "text-align" "center", style "width" "350px", style "margin-left" "auto", style "margin-right" "auto" ]
+  div [ style "text-align" "center", style "margin" "2em auto", style "display" "block" ]
     [ bootstrap
-    , viewRoulette model.counters colorList model.rotationPercentage
-    , viewStartButton model.scene
-    , viewCurrentlyPointedLable model.scene model.pointedCounter
-    , div [] <| viewCounters model.counters colorList
-    , viewResultDialog model.scene model.pointedCounter
+    , div [ style "width" "500px", style "display" "inline-block" ]
+      [ viewRoulette model.counters colorList model.rotationPercentage
+      , viewStartButton model.scene
+      ] 
+    , div [ style "width" "500px", style "display" "inline-block" ]
+      [ viewCurrentlyPointedLable model.scene model.pointedCounter
+      , div [] <| viewCounters model.counters colorList
+      , viewResultDialog model.scene model.pointedCounter
+      ]
     ]
 
 viewRoulette : Counters -> Colors -> Float -> Html Msg
@@ -375,7 +379,7 @@ viewRoulette counters colors rotationPercentage =
     fanShapes = List.map3 (\offset percentage color -> FanShape offset percentage color) offsets percentages colors
   in
     svg
-      [ viewBox "0 0 63.6619772368 63.6619772368", width "300px", transform "rotate(90)" ]
+      [ viewBox "0 0 63.6619772368 63.6619772368", width "500px", style "transform" "rotate(90deg)" ]
       (List.append (List.map (\fanShape -> viewFanShape fanShape) fanShapes) [viewRoulettePointer])
       
 viewFanShape : FanShape -> Html Msg
@@ -412,7 +416,7 @@ viewCounter counter color =
       [ div [ class "input-group mb-3", style "display" "inline", style "margin-right" "0.2em" ]
           [ div [ class "input-group-prepend", style "display" "inline" ]
             [ Html.span [ style "display" "inline", style "padding" "0.35em", style "background-color" color, style "border-color" color, style "cursor" "default", onClick (Cheat counter) ] [ text "　" ]
-            , input [ style "type" "text", style "display" "inline", style "width" "8.5em", value counter.label, placeholder placeholder_, onInput <| ChangeLable counter ] [ text counter.label ]
+            , input [ style "type" "text", style "display" "inline", style "width" "12em", value counter.label, placeholder placeholder_, onInput <| ChangeLable counter ] [ text counter.label ]
             ]
           ]
       , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Decrement counter) ] [ text "-" ]
@@ -425,7 +429,7 @@ viewStartButton : Scene -> Html Msg
 viewStartButton scene =
   case scene of
     EditingRoulette ->
-      div [] [ button [ class "btn btn-outline-primary", style "width" "270px", style "margin-bottom" "0.5em", onClick OnClickStart ] [ text "Start" ] ]
+      div [] [ button [ class "btn btn-outline-primary", style "width" "400px", style "margin" " 0.5em 0 2em 0", onClick OnClickStart ] [ text "Start" ] ]
   
     _ ->
       text ""

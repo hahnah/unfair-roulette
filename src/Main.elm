@@ -322,9 +322,6 @@ willBeNewlyPointed rotationVelocity collisionRange  =
 
 willReachGoal : Float -> Float -> Float -> Bool
 willReachGoal goal rotation velocity =
-  let
-    _ = Debug.log "willReachGoal" (rotation < goal && goal <= rotation + velocity)
-  in
   if rotation < goal && goal <= rotation + velocity then
     True
   else

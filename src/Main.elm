@@ -351,7 +351,7 @@ calculateCollisionRanges counters rotationPercentage =
 
 view : Model -> Html Msg
 view model =
-  div [ style "text-align" "center", style "margin" "2em auto", style "display" "block" ]
+  div [ style "text-align" "center", style "margin" "0 auto", style "padding-top" "1em", style "display" "block" ]
     [ bootstrap
     , div [ style "width" "500px", style "display" "inline-block" ]
       [ viewRoulette model.counters colorList model.rotationPercentage

@@ -31,8 +31,8 @@ type alias Model =
   { scene: Scene
   , counters: Counters
   , maxCounters: Int
-  , rotationPercentage: Float
-  , rotationPercentageVelocity: Float
+  , rotation: Float -- in percentage
+  , rotationVelocity: Float
   , decayRate: Float
   , goalRotation: Float
   , pointedCounter: Counter
@@ -220,24 +220,24 @@ update msg model =
 
     (StartSpinningRoulette decayRate_ (initialVelocity, goal), EditingRoulette) ->
       if isThereEnogthCountersToStart model.counters then
-        ({ model | scene = RouletteSpinning, decayRate = decayRate_,rotationPercentageVelocity = initialVelocity, goalRotation = goal }, Cmd.none)
+        ({ model | scene = RouletteSpinning, decayRate = decayRate_,rotationVelocity = initialVelocity, goalRotation = goal }, Cmd.none)
       else
         (model, Cmd.none)
 
     (SpinRoulette _, RouletteSpinning) ->
       let
         pointedCounter_ =
-          calculateCollisionRanges model.counters model.rotationPercentage
-            |> List.map2 (\counter collisionRange -> Tuple.pair counter <| willBeNewlyPointed model.rotationPercentageVelocity collisionRange) model.counters
+          calculateCollisionRanges model.counters model.rotation
+            |> List.map2 (\counter collisionRange -> Tuple.pair counter <| willBeNewlyPointed model.rotationVelocity collisionRange) model.counters
             |> List.filter (\(counter, willBeNewlyPointed_) -> willBeNewlyPointed_)
             |> List.head
             |> Maybe.withDefault (model.pointedCounter, False)
             |> Tuple.first
-        (rotationPercentage_, rotationPercentageVelocity_) = updateRotation model.rotationPercentage model.rotationPercentageVelocity model.decayRate
+        (rotation_, rotationVelocity_) = updateRotation model.rotation model.rotationVelocity model.decayRate
         model_ =
-          { model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_, pointedCounter = pointedCounter_ }
+          { model | rotation = rotation_, rotationVelocity = rotationVelocity_, pointedCounter = pointedCounter_ }
       in
-        if model.rotationPercentageVelocity > limitVelocityOfUniformAcceleration then
+        if model.rotationVelocity > limitVelocityOfUniformAcceleration then
           (model_, Cmd.none)
         else
           update (AdjustDecayRateForSmoothStop smootherDecayRate) model_
@@ -245,18 +245,18 @@ update msg model =
     (SpinRoulette _, RouletteSpinningTowardsStop) ->
       let
         pointedCounter_ =
-          calculateCollisionRanges model.counters model.rotationPercentage
-            |> List.map2 (\counter collisionRange -> Tuple.pair counter <| willBeNewlyPointed model.rotationPercentageVelocity collisionRange) model.counters
+          calculateCollisionRanges model.counters model.rotation
+            |> List.map2 (\counter collisionRange -> Tuple.pair counter <| willBeNewlyPointed model.rotationVelocity collisionRange) model.counters
             |> List.filter (\(counter, willBeNewlyPointed_) -> willBeNewlyPointed_)
             |> List.head
             |> Maybe.withDefault (model.pointedCounter, False)
             |> Tuple.first
-        (rotationPercentage_, rotationPercentageVelocity_) = updateRotation model.rotationPercentage model.rotationPercentageVelocity model.decayRate
+        (rotation_, rotationVelocity_) = updateRotation model.rotation model.rotationVelocity model.decayRate
       in
-        if willReachGoal model.goalRotation model.rotationPercentage model.rotationPercentageVelocity then
+        if willReachGoal model.goalRotation model.rotation model.rotationVelocity then
           update (StopRoulette milliSecondsToKeepRouletteStopUntilResult) model
         else
-          ({ model | rotationPercentage = rotationPercentage_, rotationPercentageVelocity = rotationPercentageVelocity_, pointedCounter = pointedCounter_}, Cmd.none)
+          ({ model | rotation = rotation_, rotationVelocity = rotationVelocity_, pointedCounter = pointedCounter_}, Cmd.none)
     
     (AdjustDecayRateForSmoothStop decayRate_, RouletteSpinning) ->
       ({ model | decayRate = decayRate_, scene = RouletteSpinningTowardsStop }, Cmd.none)
@@ -296,20 +296,20 @@ separateIntoFrontAndBack counters counter =
     (frontCounters, backCounters)
 
 updateRotation : Float -> Float -> Float -> (Float, Float)
-updateRotation rotationPercentage rotationPercentageVelocity decayRate =
+updateRotation rotation rotationVelocity decayRate =
   let
-    newRotationPercentage =
-      rotationPercentage + rotationPercentageVelocity
+    newRotation =
+      rotation + rotationVelocity
         |> carryDownUnder 100.0 100.0
     tempVelocity =
-      decayRate * rotationPercentageVelocity
-    newRotationPercentageVelocity =
+      decayRate * rotationVelocity
+    newRotationVelocity =
       if tempVelocity > minimumVelocity then
         tempVelocity
       else
         0.0
   in
-    (newRotationPercentage, newRotationPercentageVelocity)
+    (newRotation, newRotationVelocity)
 
 willBeNewlyPointed : Float -> RotationRange -> Bool
 willBeNewlyPointed rotationVelocity collisionRange  =
@@ -335,14 +335,14 @@ carryDownUnder maximum decrementStep value =
     carryDownUnder value decrementStep <| value - decrementStep 
 
 calculateCollisionRanges : Counters -> Float -> List RotationRange
-calculateCollisionRanges counters rotationPercentage =
+calculateCollisionRanges counters rotation =
   let
     counts = List.map (\counter -> toFloat counter.count) counters
     total = List.sum counts
     percentages = List.map (\count -> 100.0 * count / total) counts
     offsets =
       List.foldl (\percentage acc -> List.append acc [(Maybe.withDefault 0.0 <| List.maximum acc) + percentage]) [0.0] percentages
-        |> List.map ((+) rotationPercentage)
+        |> List.map ((+) rotation)
   in
     List.map2 (\percentage offset -> RotationRange offset <| offset + percentage) percentages offsets
 
@@ -354,7 +354,7 @@ view model =
   div [ style "text-align" "center", style "margin" "0 auto", style "padding-top" "1em", style "display" "block" ]
     [ bootstrap
     , div [ style "width" "500px", style "display" "inline-block" ]
-      [ viewRoulette model.counters colorList model.rotationPercentage
+      [ viewRoulette model.counters colorList model.rotation
       , viewStartButton model.scene
       , viewCurrentlyPointedLable model.scene model.pointedCounter
       ] 
@@ -365,14 +365,14 @@ view model =
     ]
 
 viewRoulette : Counters -> Colors -> Float -> Html Msg
-viewRoulette counters colors rotationPercentage =
+viewRoulette counters colors rotation =
   let
     counts = List.map (\counter -> toFloat counter.count) counters
     total = List.sum counts
     percentages = List.map (\count -> 100.0 * count / total) counts
     offsets =
       List.foldl (\percentage acc -> List.append acc [(Maybe.withDefault 0.0 <| List.maximum acc) + percentage]) [0.0] percentages
-        |> List.map ((+) rotationPercentage)
+        |> List.map ((+) rotation)
     fanShapes = List.map3 (\offset percentage color -> FanShape offset percentage color) offsets percentages colors
   in
     svg

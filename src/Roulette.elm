@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Roulette exposing (main)
 
 import Browser
 import Html exposing (Html, button, div, text, input, h2, h4, node)

@@ -416,6 +416,7 @@ viewCounter counter color =
             , input [ style "type" "text", style "display" "inline", style "width" "12em", value counter.label, placeholder placeholder_, onInput <| ChangeLable counter ] [ text counter.label ]
             ]
           ]
+      , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Decrement counter) ] [ text "-" ]
       , input [ style "type" "number", style "width" "2.5em", value count, placeholder placeholder_, onInput <| ChangeCount counter, style "display" "inline" ] [ text count ]
       , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Increment counter) ] [ text "+" ]
       , button [ class "btn btn-outline-secondary", style "display" "inline", onClick (Clear counter) ] [ text "Clear" ]

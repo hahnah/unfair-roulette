@@ -6308,6 +6308,9 @@ var author$project$Roulette$Cheat = function (a) {
 var author$project$Roulette$Clear = function (a) {
 	return {$: 4, a: a};
 };
+var author$project$Roulette$Decrement = function (a) {
+	return {$: 1, a: a};
+};
 var author$project$Roulette$Increment = function (a) {
 	return {$: 0, a: a};
 };
@@ -6433,6 +6436,19 @@ var author$project$Roulette$viewCounter = F2(
 											elm$html$Html$text(counter.l)
 										]))
 								]))
+						])),
+					A2(
+					elm$html$Html$button,
+					_List_fromArray(
+						[
+							elm$html$Html$Attributes$class('btn btn-outline-secondary'),
+							A2(elm$html$Html$Attributes$style, 'display', 'inline'),
+							elm$html$Html$Events$onClick(
+							author$project$Roulette$Decrement(counter))
+						]),
+					_List_fromArray(
+						[
+							elm$html$Html$text('-')
 						])),
 					A2(
 					elm$html$Html$input,

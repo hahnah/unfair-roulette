@@ -4,3 +4,10 @@
 # Elm
 elm-stuff
 repl-temp-*
+
+# Node
+node_modules
+
+# Output
+dist
+index.html

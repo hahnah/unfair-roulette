@@ -1,0 +1,16 @@
+{
+  "name": "unfair-roulette",
+  "type": "module",
+  "scripts": {
+    "start": "elm-live src/Roulette.elm -- --output=index.html --debug",
+    "build": "mkdir -p dist && elm make src/Roulette.elm --output=dist/index.html --optimize"
+  },
+  "devDependencies": {
+    "elm": "0.19.1-6",
+    "elm-live": "4.0.2"
+  },
+  "volta": {
+    "node": "22.13.1",
+    "npm": "11.0.0"
+  }
+}

@@ -45,4 +45,4 @@ Hahnah (Natsuki Harai)
 
 ## License
 
-MIT © [Hahnah](https://superhahnah.com)
+MIT © [Hahnah](https://hahnah.github.io)

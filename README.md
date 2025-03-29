@@ -38,11 +38,11 @@ npm run build
 
 ## Author
 
-hahnah
+Hahnah (Natsuki Harai)
 
-- WebSite: [Super Hahnah](https://superhahnah.com)
-- Twitter: [@superhahnah](https://twitter.com/superhahnah)
+- WebSite: [Hahnah Chronicle](https://hahnah.github.io)
+- X: [@superhahnah](https://twitter.com/superhahnah)
 
 ## License
 
-MIT © [hahnah](https://superhahnah.com)
+MIT © [Hahnah](https://superhahnah.com)

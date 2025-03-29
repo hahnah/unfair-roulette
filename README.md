@@ -3,7 +3,7 @@
 This is truely fair roulette usually.  
 But if you expect, you can do cheat!
 
-[Application Page](https://superhahnah.com/application/fair-roulette/)
+[Application Page](https://hahnah.github.io/fair-roulette/)
 
 ## How to cheat at the roulette
 
